@@ -4,6 +4,7 @@
 Public Class GrammarLine
 
     Public Overridable Property Name As String
+    Public Overridable Property Assoc As AssocTypes = AssocTypes.Type
     Public Overridable Property Priority As Integer
     Public Overridable Property Action As String = Nothing
 

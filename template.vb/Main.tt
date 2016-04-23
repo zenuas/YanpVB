@@ -1,0 +1,21 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+
+    Public Class Main
+
+        Public Shared Sub Main(args() As String)
+
+            Dim parser As New MyParser
+            parser.Parse(New MyLexer(System.Console.In))
+
+            'System.Console.WriteLine("end of stream... push any key")
+            'System.Console.ReadKey
+        End Sub
+
+    End Class
+
+End Namespace
+

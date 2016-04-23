@@ -113,7 +113,7 @@ ReStart_:
                     If lex.PeekToken.SymbolType <> TokenTypes.Char_Grammar_Start Then Throw New ParseException(lex.LineNo, lex.LineColumn, "gram start separater")
                     lex.ReadToken()
 
-                    Dim create_gram = Function(t As Token) New GrammarLine With {.Name = t.Name, .Priority = get_register_decla(t).Priority}
+                    Dim create_gram = Function(t As Token) New GrammarLine With {.Name = t.Name, .Assoc = get_register_decla(t).Assoc, .Priority = get_register_decla(t).Priority}
                     Dim line = create_gram(token)
                     y.Grammars.Add(line)
 
@@ -186,6 +186,7 @@ ReStart_:
 
                                 Dim prec = lex.PeekToken
                                 If prec.SymbolType <> TokenTypes.Token AndAlso prec.SymbolType <> TokenTypes.CharValue Then Throw New ParseException(lex.LineNo, lex.LineColumn, "bad sequence grammar prec token")
+                                line.Assoc = get_register_decla(prec).Assoc
                                 line.Priority = get_register_decla(prec).Priority
                                 lex.ReadToken()
 

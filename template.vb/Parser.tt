@@ -1,9 +1,7 @@
 ﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
 <#@ output extension=".vb" encoding="UTF-8" #>
 <#@ assembly name="yanp.exe" #>
-<#@ parameter type="Yanp.Syntax"                                   name="Syntax"  #>
-<#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes"   #>
-<#@ parameter type="Yanp.RresolveConflict"                         name="Resolve" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
 Imports System.Collections.Generic
 
 

@@ -117,7 +117,7 @@ Public Class Generator
         Return nodes.Where(Function(x) mark.ContainsKey(x)).ToList
     End Function
 
-    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As RresolveConflict
+    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As ResolveConflict
 
         Dim nullable = y.Grammars.Map(Function(x) x.Name).ToHash_ValueDerivation(Function(x) False)
         Do While True
@@ -162,8 +162,8 @@ Public Class Generator
             Exit Do
         Loop
 
-        Dim follow = nullable.Map(Function(x) x.Key).ToHash_ValueDerivation(Function(x) New List(Of String))
-        nodes.Do(Sub(x) If follow.ContainsKey(x.Name) Then follow(x.Name) = follow(x.Name).Join(lookahead(x)).SortToList.ToList)
+        Dim follow = nullable.Cdr.Map(Function(x) x.Key).ToHash_ValueDerivation(Function(x) New List(Of String))
+        nodes.Do(Sub(x) If follow.ContainsKey(x.Name) Then follow(x.Name) = follow(x.Name).Join(lookahead(x)).SortToList.Unique.ToList)
         Do While True
 
             For Each p In nodes.Where(Function(x) follow.ContainsKey(x.Name) AndAlso x.NextNodes.IsNull)
@@ -179,7 +179,57 @@ Public Class Generator
             Exit Do
         Loop
 
-        Return New RresolveConflict With {.LookAHead = lookahead, .Follow = follow}
+        Return New ResolveConflict With {.LookAHead = lookahead, .Follow = follow}
+    End Function
+
+    Public Shared Function LALRParser(y As Syntax, nodes As List(Of Node), resolve As ResolveConflict) As List(Of Dictionary(Of String, ParserAction))
+
+        Return nodes.Map(
+            Function(p)
+
+                Dim line As New Dictionary(Of String, ParserAction)
+                For Each shift In p.NextNodes
+
+                    line(shift.Name) = New ShiftAction With {.Next = shift}
+                Next
+
+                For Each reduce In p.Lines.Where(Function(x) x.Index = x.Line.Grams.Count)
+
+                    ' any reduce
+                    If Not resolve.Follow.ContainsKey(reduce.Line.Name) Then Continue For
+
+                    For Each r In resolve.Follow(reduce.Line.Name)
+
+                        If Not line.ContainsKey(r) Then
+
+                            line(r) = New ReduceAction With {.Reduce = reduce.Line}
+
+                        ElseIf TypeOf line(r) Is ShiftAction Then
+
+                            Select Case _
+                                If(reduce.Line.Priority > y.Declas(r).Priority, AssocTypes.Left,
+                                If(reduce.Line.Priority < y.Declas(r).Priority, AssocTypes.Right,
+                                reduce.Line.Assoc))
+
+                                Case AssocTypes.Left
+
+                                Case AssocTypes.Right
+                                    line(r) = New ReduceAction With {.Reduce = reduce.Line}
+
+                                Case Else
+                                    ' shift/reduce conflict
+                                    System.Diagnostics.Debug.Fail("shift/reduce conflict")
+
+                            End Select
+                        Else
+
+                            ' reduce/reduce conflict
+                            System.Diagnostics.Debug.Fail("reduce/reduce conflict")
+                        End If
+                    Next
+                Next
+                Return line
+            End Function).ToList
     End Function
 
 End Class

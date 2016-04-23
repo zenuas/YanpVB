@@ -18,7 +18,7 @@ Public Class TextTemplatingEngineHostBinder
     Public Overridable Property FileExtension As String = ""
     Public Overridable Property OutputEncoding As Encoding = Encoding.UTF8
     Public Overridable Property GetHostOption As Func(Of String, Object) = Nothing
-    Public Overridable Property LoadIncludeText As Func(Of String, Tuple(Of Boolean, String, String)) = Nothing
+    Public Overridable Property LoadIncludeText As Func(Of String, String) = Nothing
     Public Overridable Property AppDomain As AppDomain = Nothing
     Public Overridable Property ResolveAssemblyReference As Func(Of String, String) = Nothing
     Public Overridable Property ResolveDirectiveProcessor As Func(Of String, Type) = Nothing
@@ -54,13 +54,9 @@ Public Class TextTemplatingEngineHostBinder
     Public Overridable Function LoadIncludeText_(requestFileName As String, ByRef content As String, ByRef location As String) As Boolean Implements ITextTemplatingEngineHost.LoadIncludeText
 
         If Me.LoadIncludeText Is Nothing Then Return False
-        Dim x = Me.LoadIncludeText(requestFileName)
-        If x.Item1 Then
-
-            content = x.Item2
-            location = x.Item2
-        End If
-        Return x.Item1
+        content = Me.LoadIncludeText(requestFileName)
+        location = requestFileName
+        Return Not String.IsNullOrEmpty(content)
     End Function
 
     Public Overridable Function ProvideTemplatingAppDomain(content As String) As AppDomain Implements ITextTemplatingEngineHost.ProvideTemplatingAppDomain

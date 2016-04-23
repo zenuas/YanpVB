@@ -1,0 +1,17 @@
+﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+
+    Public Interface IToken(Of T)
+
+        ReadOnly Property EndOfToken As Boolean
+        ReadOnly Property IsAccept As Boolean
+        ReadOnly Property InputToken As Integer
+        Property TableIndex As Integer
+        Property Value As T
+
+    End Interface
+
+End Namespace

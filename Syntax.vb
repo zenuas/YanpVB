@@ -7,7 +7,7 @@ Public Class Syntax
     Public Overridable Property HeaderCode As New StringBuilder
     Public Overridable Property FooterCode As New StringBuilder
     Public Overridable Property Start As String = Nothing
-    Public Overridable Property [Default] As String = Nothing
+    Public Overridable Property [Default] As String = ""
     Public Overridable Property Defines As New Dictionary(Of String, String)
 
     ''' <summary>

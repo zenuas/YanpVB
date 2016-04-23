@@ -1,0 +1,138 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#= Syntax.HeaderCode #>
+Imports System
+Imports System.Diagnostics
+
+Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+
+    Public Class MyParser
+        Inherits Parser(Of <#= Syntax.Default #>)
+
+        Private Shared ReadOnly tables_(,) As Integer = { _
+<%
+var termx = {};
+for(var i = 0; i < terms.length; i++)
+{
+	termx[terms[i]] = i;
+}
+
+var reduce_states = [];
+function get_reduce(state, node)
+{
+	for(var i = 0; i < reduce_states.length; i++)
+	{
+		if(state == reduce_states[i]) {return(i + 1);}
+	}
+	reduce_states.push(state);
+	return(reduce_states.length);
+}
+
+var lrs = parser.CreateParser();
+for(var i = 0; i < lrs.Count; i++)
+{
+	var lr   = lrs(i);
+	var node = lr.Node;
+	
+	var lines = [];
+	for(var j = 0; j < terms.length; j++)
+	{
+		if(terms[j] == "$ACCEPT") {continue;}
+		lines.push(lr.AnyReduce ? -get_reduce(lr.AnyReduce, node) : 0);
+	}
+	
+	for(var key in lr.Line.Keys)
+	{
+		var shift_reduce = lr.Line(key);
+		
+		if(shift_reduce.UniqueID != null)
+		{
+			// shift
+			lines[termx[key]] = shift_reduce.UniqueID;
+		}
+		else
+		{
+			// reduce
+			lines[termx[key]] = -get_reduce(shift_reduce, node);
+		}
+	}
+	
+%>                {<%= lines.join(", ") + (i + 1 == lrs.Count ? "}" : "},") %> _
+<%
+}
+%>
+            }
+
+        Protected Overrides Function CreateTable() As Integer(,)
+
+            Return tables_
+        End Function
+
+        Protected Overrides Function RunAction(yy_no As Integer) As IToken(Of <#= Syntax.Default #>)
+
+            Dim yy_token As IToken(Of <#= Syntax.Default #>) = Nothing
+            Dim yy_value As <#= Syntax.Default #> = Nothing
+
+            Select Case yy_no
+<%
+var default_action = "yy_value = Me.DefaultAction({0})";
+for(var i = 0; i < reduce_states.length; i++)
+{
+	var reduce = reduce_states[i];
+	var action = "";
+	var length = reduce.Grammars.Count;
+	
+	if(reduce.Grammars.HasAction)
+	{
+		action = reduce.Grammars.Action;
+		
+		action = action
+			.replace(/\$\$/g, "yy_value")
+			.replace(/\$(\d+)/g, function ($0, $1)
+				{
+					var n = $1 - 0;
+					if(n <= 0 || n > length) {return("Nothing");}
+					n--;
+					var g = reduce.Grammars[n];
+					if(reduce.Grammars[n].Type)         {return(String.Format("CType(Me.GetValue({0}), {1})",   n - length, g.Type));}
+					else if(!grams.ContainsKey(g.Name)) {return(String.Format("CType(Me.GetToken({0}), Token)", n - length));}
+					else                                {return(String.Format(     "(Me.GetValue({0}))",        n - length));}
+				});
+	}
+%>
+                Case <%= -i - 1 %>
+                    System.Diagnostics.Debug.WriteLine("<%= reduce.ToString() %>")
+                    <%= action || String.Format(default_action, length) %>
+                    yy_token = Me.DoAction(SymbolTypes.<%= vbterms[reduce.Var] %>, <%= length %>, yy_value)
+
+<%
+}
+%>
+                Case Else
+                    Throw New InvalidProgramException
+            End Select
+
+            Return yy_token
+        End Function
+
+        Protected Overridable Overloads Function DoAction(
+                type As SymbolTypes,
+                length As Integer,
+                value As <#= Syntax.Default #>
+            ) As IToken(Of <#= Syntax.Default #>)
+
+            Return Me.DoAction(New Token(type), length, value)
+        End Function
+
+        Protected Overrides Sub OnError(lex As Lexer(Of <#= Syntax.Default #>))
+
+            Debug.Fail("syntax error")
+            Throw New SyntaxErrorException(lex.LineNumber, lex.LineColumn, "syntax error")
+        End Sub
+    End Class
+
+End Namespace
+

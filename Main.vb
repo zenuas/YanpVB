@@ -1,35 +1,25 @@
 ﻿Imports System
 Imports System.IO
-
+Imports System.Text.RegularExpressions
 
 Public Class Main
 
     Public Shared Sub Main(args() As String)
 
-        Dim y As Syntax
-        If args.Length = 0 Then
+        Dim opt As New Command.Option
+        args = Command.Parser.Parse(opt, args)
+        If args.Length > 0 AndAlso opt.Input Is Nothing Then opt.Input = New StreamReader(args(0))
 
-            y = Parse(Console.In)
-        Else
-
-            Using in_ As New StreamReader(args(0))
-
-                y = Parse(in_)
-            End Using
-        End If
-
+        Dim y As New Syntax
+        Dim lex As New Lexer With {.Reader = opt.Input}
+        Parser.ParseDeclaration(y, lex)
+        Parser.ParseGrammar(y, lex)
+        y.FooterCode.Append(lex.Reader.ReadToEnd)
         Dim nodes = Generator.LR0(y)
         Dim resolve = Generator.LALR1(y, nodes)
+        Dim p = Generator.LALRParser(y, nodes, resolve)
 
-#If DEBUG Then
-        nodes.Do(
-            Sub(x, i)
-                Console.WriteLine($"state {i}")
-                Console.WriteLine("    " + x.ToString.Replace(Environment.NewLine, Environment.NewLine + "    "))
-                Console.WriteLine()
-            End Sub)
-#End If
-
+        Dim dir_templates = Path.Combine(opt.BasePath, $"template.{opt.Template}")
         Dim err As System.CodeDom.Compiler.CompilerErrorCollection = Nothing
         Dim engine As New Microsoft.VisualStudio.TextTemplating.Engine
         Dim host As New TextTemplatingEngineHostBinder With {
@@ -44,40 +34,56 @@ Public Class Main
                         If File.Exists(Path.Combine(asm, s)) Then Return Path.Combine(asm, s)
 
                         Return Nothing
+                    End Function,
+               .LoadIncludeText =
+                    Function(s)
+
+                        Return File.ReadAllText(Path.Combine(dir_templates, s))
                     End Function
             }
         host.Session("Syntax") = y
-        host.Session("Nodes") = nodes
-        For Each f In Directory.GetFiles("template.vb")
 
-            host.TemplateFile = f
-            Dim out = engine.ProcessTemplate(File.ReadAllText(f), host)
-            If err?.HasErrors Then
+        Dim create_template =
+            Function(template As String, output As TextWriter)
 
-                For Each e In err
+                host.TemplateFile = template
+                Dim out = engine.ProcessTemplate(File.ReadAllText(template), host)
+                If err?.HasErrors Then
 
-                    Console.Error.WriteLine(e)
-                Next
-                Exit For
-            Else
-                Console.WriteLine(out)
-            End If
+                    For Each e In err
+
+                        Console.Error.WriteLine(e)
+                    Next
+                    Return False
+
+                Else
+
+                    If output Is Nothing Then
+
+                        Using x As New StreamWriter($"{Path.GetFileNameWithoutExtension(template)}{host.FileExtension}")
+
+                            x.Write(out)
+                        End Using
+                    Else
+                        output.Write(out)
+                    End If
+                    Return True
+                End If
+            End Function
+
+        For Each f In Directory.GetFiles(dir_templates, "*.tt")
+
+            If Not create_template(f, Nothing) Then Exit For
         Next
+
+        If opt.VerboseOutput IsNot Nothing Then create_template(Path.Combine(opt.BasePath, "verbose.tt"), opt.VerboseOutput)
+        If opt.CsvOutput IsNot Nothing Then create_template(Path.Combine(opt.BasePath, "csv.tt"), opt.CsvOutput)
+        If opt.GraphvizOutput IsNot Nothing Then create_template(Path.Combine(opt.BasePath, "graph.tt"), opt.GraphvizOutput)
 
 #If DEBUG Then
         Console.WriteLine("push any key...")
         Console.ReadKey()
 #End If
     End Sub
-
-    Public Shared Function Parse(in_ As TextReader) As Syntax
-
-        Dim y As New Syntax
-        Dim lex As New Lexer With {.Reader = in_}
-        Parser.ParseDeclaration(y, lex)
-        Parser.ParseGrammar(y, lex)
-        y.FooterCode.Append(lex.Reader.ReadToEnd)
-        Return y
-    End Function
 
 End Class

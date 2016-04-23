@@ -1,0 +1,23 @@
+﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+
+    Public Enum SymbolTypes As Integer
+<#
+Dim isfirst = True
+For Each x As String In terms.Keys
+#>
+
+        ''' <summary><#= terms(x) #></summary>
+        <#= vbterms(terms(x)) + If(isfirst, " = 0", "") #>
+<#
+	isfirst = False
+Next
+#>
+
+    End Enum
+
+End Namespace

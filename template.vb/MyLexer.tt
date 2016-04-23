@@ -1,0 +1,47 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#= Syntax.HeaderCode #>
+Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+
+    Public Class MyLexer
+        Inherits Lexer(Of <#= Syntax.Default #>)
+
+        Public Sub New(ByVal reader As System.IO.TextReader)
+            MyBase.New(reader)
+
+<#
+For Each c As String In terms.Keys
+	
+	If c.Chars(0) <> "'"c Then Continue For
+#>            Me.ReservedChar(<#= Regex.Replace(c, "^'|'$", """") #>c) = SymbolTypes.<#= vbterms(c) #>
+<#
+Next
+For Each c As String In terms.Keys
+	
+	If c.Chars(0) = "'"c OrElse c.Chars(0) = "$"c OrElse Not Syntax.Grammars.Where(Function(g) g.Name = c).IsNull Then Continue For
+#>            Me.ReservedWord("<#= c #>") = SymbolTypes.<#= vbterms(c) #>
+<#
+Next
+#>
+        End Sub
+
+        Public Overrides Function CreateEndOfToken() As IToken(Of <#= Syntax.Default #>)
+
+            Return New Token(SymbolTypes.<#= vbterms("$END") #>)
+        End Function
+
+        Public Overrides Function CreateCharToken(x As Integer) As IToken(Of <#= Syntax.Default #>)
+
+            Return New Token(CType(x, SymbolTypes))
+        End Function
+
+        Public Overrides Function CreateWordToken(x As Integer) As IToken(Of <#= Syntax.Default #>)
+
+            Return New Token(CType(x, SymbolTypes))
+        End Function
+    End Class
+
+End Namespace
