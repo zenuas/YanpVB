@@ -25,7 +25,12 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
             Me.Name = name
         End Sub
 
-        Protected Overridable ReadOnly Property InputToken() As Integer Implements IToken(Of <#= Syntax.Default #>).InputToken
+        Protected Overridable ReadOnly Property InputToken As Integer Implements IToken(Of <#= Syntax.Default #>).InputToken
+            Get
+                Return Me.Type
+            End Get
+        End Property
+
         Protected Overridable Property TableIndex As Integer Implements IToken(Of <#= Syntax.Default #>).TableIndex
         Public Overridable Property Value As <#= Syntax.Default #> Implements IToken(Of <#= Syntax.Default #>).Value
         Public Overridable ReadOnly Property Name As String

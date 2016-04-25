@@ -33,14 +33,14 @@ Next
             Return New Token(SymbolTypes.<#= vbterms("$END") #>)
         End Function
 
-        Public Overrides Function CreateCharToken(x As Integer) As IToken(Of <#= Syntax.Default #>)
+        Public Overrides Function CreateCharToken(x As SymbolTypes) As IToken(Of <#= Syntax.Default #>)
 
-            Return New Token(CType(x, SymbolTypes))
+            Return New Token(x)
         End Function
 
-        Public Overrides Function CreateWordToken(x As Integer) As IToken(Of <#= Syntax.Default #>)
+        Public Overrides Function CreateWordToken(x As SymbolTypes) As IToken(Of <#= Syntax.Default #>)
 
-            Return New Token(CType(x, SymbolTypes))
+            Return New Token(x)
         End Function
     End Class
 

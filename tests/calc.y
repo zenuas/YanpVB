@@ -6,6 +6,9 @@
 
 %%
 
+stmt : expr          {Console.WriteLine($1)}
+     | stmt expr     {Console.WriteLine($2)}
+
 expr : expr '+' expr {$$ = $1 + $3}
      | expr '-' expr {$$ = $1 - $3}
      | expr '*' expr {$$ = $1 * $3}
