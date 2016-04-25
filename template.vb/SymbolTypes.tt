@@ -11,8 +11,8 @@ Dim isfirst = True
 For Each x As String In terms.Keys
 #>
 
-        ''' <summary><#= terms(x) #></summary>
-        <#= vbterms(terms(x)) + If(isfirst, " = 0", "") #>
+        ''' <summary><#= x #></summary>
+        <#= vbterms(x) + If(isfirst, " = 0", "") #>
 <#
 	isfirst = False
 Next

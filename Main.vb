@@ -1,6 +1,6 @@
 ﻿Imports System
 Imports System.IO
-Imports System.Text.RegularExpressions
+
 
 Public Class Main
 
@@ -42,6 +42,8 @@ Public Class Main
                     End Function
             }
         host.Session("Syntax") = y
+        host.Session("Nodes") = nodes
+        host.Session("ParserTable") = p
 
         Dim create_template =
             Function(template As String, output As TextWriter)
@@ -54,6 +56,7 @@ Public Class Main
 
                         Console.Error.WriteLine(e)
                     Next
+                    System.Diagnostics.Debug.Fail("template compile error")
                     Return False
 
                 Else
@@ -80,10 +83,6 @@ Public Class Main
         If opt.CsvOutput IsNot Nothing Then create_template(Path.Combine(opt.BasePath, "csv.tt"), opt.CsvOutput)
         If opt.GraphvizOutput IsNot Nothing Then create_template(Path.Combine(opt.BasePath, "graph.tt"), opt.GraphvizOutput)
 
-#If DEBUG Then
-        Console.WriteLine("push any key...")
-        Console.ReadKey()
-#End If
     End Sub
 
 End Class

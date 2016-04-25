@@ -10,12 +10,14 @@ Public Class Generator
         If y.Grammars.FindFirstOrNull(Function(x) x.Name = y.Start) Is Nothing Then Throw New ParseException($"the start symbol {y.Start} is undefined")
 
         ' $ACCEPT : y.Start $END
-        Dim accept As New GrammarLine With {.Name = "$ACCEPT"}
+        Dim accept As New Declarate With {.Name = "$ACCEPT"}
         Dim end_ As New Declarate With {.Name = "$END"}
-        accept.Grams.Add(y.Declas(y.Start))
+        Dim accept_line As New GrammarLine With {.Name = accept.Name}
+        accept_line.Grams.Add(y.Declas(y.Start))
+        y.Declas.Add(accept.Name, accept)
         y.Declas.Add(end_.Name, end_)
-        accept.Grams.Add(end_)
-        y.Grammars.Insert(0, accept)
+        accept_line.Grams.Add(end_)
+        y.Grammars.Insert(0, accept_line)
 
         Dim first = y.Grammars.
             Map(Function(x) x.Name).

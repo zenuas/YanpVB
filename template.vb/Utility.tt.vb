@@ -158,7 +158,7 @@ Dim vb_reserved_word = {
 	}.Map(Function (x) x.ToUpper()).ToHash_ValueDerivation(Function (x) True)
 
 Dim used_term As New Dictionary(Of String, Integer)
-Dim terms = Syntax.Declas.Keys.ToHash_ValueDerivation(Function(x) x)
+Dim terms = Syntax.Declas.Keys.ToHash_ValueDerivation(Function(x, i) i)
 Dim vbterms = Syntax.Declas.Keys.ToHash_ValueDerivation(
 	Function(x)
 		

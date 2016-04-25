@@ -2,7 +2,10 @@
 <#@ output extension=".vb" encoding="UTF-8" #>
 <#@ assembly name="yanp.exe" #>
 <#@ include file="Utility.tt.vb" #>
+<#@ import namespace="Yanp" #>
 <#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
+<#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
 <#= Syntax.HeaderCode #>
 Imports System
 Imports System.Diagnostics
@@ -12,58 +15,26 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
     Public Class MyParser
         Inherits Parser(Of <#= Syntax.Default #>)
 
-        Private Shared ReadOnly tables_(,) As Integer = { _
-<%
-var termx = {};
-for(var i = 0; i < terms.length; i++)
-{
-	termx[terms[i]] = i;
-}
-
-var reduce_states = [];
-function get_reduce(state, node)
-{
-	for(var i = 0; i < reduce_states.length; i++)
-	{
-		if(state == reduce_states[i]) {return(i + 1);}
-	}
-	reduce_states.push(state);
-	return(reduce_states.length);
-}
-
-var lrs = parser.CreateParser();
-for(var i = 0; i < lrs.Count; i++)
-{
-	var lr   = lrs(i);
-	var node = lr.Node;
+        Private Shared ReadOnly tables_(,) As Integer = {
+<#
+Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
+Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
+Dim count = Me.ParserTable.Count
+For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 	
-	var lines = [];
-	for(var j = 0; j < terms.length; j++)
-	{
-		if(terms[j] == "$ACCEPT") {continue;}
-		lines.push(lr.AnyReduce ? -get_reduce(lr.AnyReduce, node) : 0);
-	}
-	
-	for(var key in lr.Line.Keys)
-	{
-		var shift_reduce = lr.Line(key);
+	count = count - 1
+	Dim line(terms.Keys.Count - 1) As Integer
+	For Each action As KeyValuePair(Of String, ParserAction) In p
 		
-		if(shift_reduce.UniqueID != null)
-		{
-			// shift
-			lines[termx[key]] = shift_reduce.UniqueID;
-		}
-		else
-		{
-			// reduce
-			lines[termx[key]] = -get_reduce(shift_reduce, node);
-		}
-	}
-	
-%>                {<%= lines.join(", ") + (i + 1 == lrs.Count ? "}" : "},") %> _
-<%
-}
-%>
+		line(terms(action.Key)) = If(TypeOf action.Value Is ShiftAction,
+				node_to_index(CType(action.Value, ShiftAction).Next),
+				reduce_to_index(CType(action.Value, ReduceAction).Reduce)
+			)
+	Next
+#>                {<#= String.Join(", ", line) #>}<#= If(count > 0, ",", "") #>
+<#
+Next
+#>
             }
 
         Protected Overrides Function CreateTable() As Integer(,)
@@ -77,40 +48,39 @@ for(var i = 0; i < lrs.Count; i++)
             Dim yy_value As <#= Syntax.Default #> = Nothing
 
             Select Case yy_no
-<%
-var default_action = "yy_value = Me.DefaultAction({0})";
-for(var i = 0; i < reduce_states.length; i++)
-{
-	var reduce = reduce_states[i];
-	var action = "";
-	var length = reduce.Grammars.Count;
+<#
+Dim grams = Me.Syntax.Grammars.Map(Function(x) x.Name).SortToList.Unique.ToHash_ValueDerivation(Function(x, i) i)
+For Each reduce As GrammarLine In Me.Syntax.Grammars
 	
-	if(reduce.Grammars.HasAction)
-	{
-		action = reduce.Grammars.Action;
+	Dim action As String
+	Dim length = reduce.Grams.Count
+	If reduce.HasAction Then
 		
-		action = action
-			.replace(/\$\$/g, "yy_value")
-			.replace(/\$(\d+)/g, function ($0, $1)
-				{
-					var n = $1 - 0;
-					if(n <= 0 || n > length) {return("Nothing");}
-					n--;
-					var g = reduce.Grammars[n];
-					if(reduce.Grammars[n].Type)         {return(String.Format("CType(Me.GetValue({0}), {1})",   n - length, g.Type));}
-					else if(!grams.ContainsKey(g.Name)) {return(String.Format("CType(Me.GetToken({0}), Token)", n - length));}
-					else                                {return(String.Format(     "(Me.GetValue({0}))",        n - length));}
-				});
-	}
-%>
-                Case <%= -i - 1 %>
-                    System.Diagnostics.Debug.WriteLine("<%= reduce.ToString() %>")
-                    <%= action || String.Format(default_action, length) %>
-                    yy_token = Me.DoAction(SymbolTypes.<%= vbterms[reduce.Var] %>, <%= length %>, yy_value)
+		action = reduce.Action
+		action = Regex.Replace(action, "\$\$", "yy_value")
+		action = Regex.Replace(action, "\$(\d+)",
+			Function(m)
+				
+				Dim n = CInt(m.Groups(1).Value)
+				If n <= 0 OrElse n > length Then Return "Nothing"
+				n = n - 1
+				Dim g = reduce.Grams(n)
+				If g.Type <> "" Then Return String.Format("CType(Me.GetValue({0}), {1})", n - length, g.Type)
+				If Not grams.ContainsKey(g.Name) Then Return String.Format("CType(Me.GetToken({0}), Token)", n - length)
+				Return String.Format("(Me.GetValue({0}))", n - length)
+			End Function)
+	Else
+		action = String.Format("yy_value = Me.DefaultAction({0})", length)
+	End If
+#>
+                Case <#= reduce_to_index(reduce) #>
+                    Debug.WriteLine("<#= reduce #>")
+                    <#= action #>
+                    yy_token = Me.DoAction(SymbolTypes.<#= vbterms(reduce.Name) #>, <#= length #>, yy_value)
 
-<%
-}
-%>
+<#
+Next
+#>
                 Case Else
                     Throw New InvalidProgramException
             End Select

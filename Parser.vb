@@ -96,7 +96,7 @@ Public Class Parser
         Dim get_register_decla =
             Function(token As Token) As Declarate
 
-                If Not y.Declas.ContainsKey(token.Name) Then y.Declas.Add(token.Name, New Declarate With {.Name = token.Name, .Assoc = AssocTypes.Type})
+                If Not y.Declas.ContainsKey(token.Name) Then y.Declas.Add(token.Name, New Declarate With {.Name = token.Name, .Assoc = AssocTypes.Type, .Type = y.Default})
                 Return y.Declas(token.Name)
             End Function
 
@@ -156,6 +156,7 @@ ReStart_:
 
                             Case TokenTypes.Char_Grammar_ActionStart
 
+                                lex.ReadToken()
                                 action_count += 1
                                 Dim action As New Declarate With {.Name = $"{{{action_count}}}", .Assoc = AssocTypes.Type}
                                 line.Grams.Add(action)
@@ -217,7 +218,7 @@ ReStart_:
 
     Public Shared Function ReadAction(lex As Lexer) As String
 
-        If lex.ReadChar <> "{"c Then Throw New ParseException(lex.LineNo, lex.LineColumn, "action read start")
+        'If lex.ReadChar <> "{"c Then Throw New ParseException(lex.LineNo, lex.LineColumn, "action read start")
 
         Dim buf As New StringBuilder
 

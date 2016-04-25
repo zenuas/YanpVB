@@ -10,9 +10,6 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
 
             Dim parser As New MyParser
             parser.Parse(New MyLexer(System.Console.In))
-
-            'System.Console.WriteLine("end of stream... push any key")
-            'System.Console.ReadKey
         End Sub
 
     End Class

@@ -9,7 +9,7 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
     Public Class MyLexer
         Inherits Lexer(Of <#= Syntax.Default #>)
 
-        Public Sub New(ByVal reader As System.IO.TextReader)
+        Public Sub New(reader As System.IO.TextReader)
             MyBase.New(reader)
 
 <#
