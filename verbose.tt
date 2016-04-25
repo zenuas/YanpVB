@@ -1,0 +1,44 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".txt" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="Yanp" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
+<#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
+<#
+Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
+Dim state = 0
+For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
+	
+#>state <#= state #>
+	<#= Me.Nodes(state).ToString.Replace(Environment.NewLine, Environment.NewLine + "	") #>
+
+<#
+	Dim shift_exists = False
+	For Each shift As KeyValuePair(Of String, ParserAction) In p.Where(Function(x) TypeOf x.Value Is ShiftAction)
+		
+#>	<#= shift.Key #>  shift <#= node_to_index(CType(shift.Value, ShiftAction).Next) #>
+<#
+		shift_exists = True
+	Next
+	
+	If shift_exists Then
+#>
+
+<#
+	End If
+	
+	For Each reduce As KeyValuePair(Of String, ParserAction) In p.Where(Function(x) TypeOf x.Value Is ReduceAction)
+		
+#>	<#= reduce.Key #>  reduce -> <#= CType(reduce.Value, ReduceAction).Reduce #>
+<#
+	Next
+	
+	state = state + 1
+#>
+
+<#
+Next
+#>
