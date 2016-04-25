@@ -173,7 +173,14 @@ ReStart_:
                                     token = t
                                     GoTo ReStart_
                                 Else
-                                    line.Grams.Add(get_register_decla(t))
+
+                                    Dim x = get_register_decla(t)
+                                    If line.Priority < x.Priority Then
+
+                                        line.Priority = x.Priority
+                                        line.Assoc = x.Assoc
+                                    End If
+                                    line.Grams.Add(x)
                                 End If
 
                             Case TokenTypes.Char_Grammar_Eq,

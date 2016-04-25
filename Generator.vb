@@ -168,13 +168,16 @@ Public Class Generator
         nodes.Do(Sub(x) If follow.ContainsKey(x.Name) Then follow(x.Name) = follow(x.Name).Join(lookahead(x)).SortToList.Unique.ToList)
         Do While True
 
-            For Each p In nodes.Where(Function(x) follow.ContainsKey(x.Name) AndAlso x.NextNodes.IsNull)
+            For Each p In nodes
 
-                Dim name = p.Name
-                For Each a In p.Lines.Map(Function(x) follow(x.Line.Name)).Flatten.Where(Function(x) Not follow(name).Contains(x))
+                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count = x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name))
 
-                    follow(name).Add(a)
-                    Continue Do
+                    Dim name = line.Line.Grams(line.Index - 1).Name
+                    For Each a In follow(line.Line.Name).Where(Function(x) Not follow(name).Contains(x))
+
+                        follow(name).Add(a)
+                        Continue Do
+                    Next
                 Next
             Next
 
@@ -214,9 +217,9 @@ Public Class Generator
                                 reduce.Line.Assoc))
 
                                 Case AssocTypes.Left
+                                    line(r) = New ReduceAction With {.Reduce = reduce.Line}
 
                                 Case AssocTypes.Right
-                                    line(r) = New ReduceAction With {.Reduce = reduce.Line}
 
                                 Case Else
                                     ' shift/reduce conflict
