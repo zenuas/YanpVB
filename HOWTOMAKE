@@ -1,1 +1,260 @@
-﻿
+﻿.Parserライブラリについて
+パーサの生成はGeneratorが担当し大きく分けて以下の順で実行する(括弧内は対応する関数名)
+
++ 宣言部の読み込み        (Parser.ParseDeclaration) ※副作用あり
++ 構文規則部の読み込み    (Parser.ParseGrammar)     ※副作用あり
++ LR(0)集合の作成         (Generator.LR0)
++ LALR(1)テーブルの作成   (Generator.LALR1)
++ シフト還元テーブルの作成(Generator.LALRParser)
+
+Parserライブラリを使用しパーサデータを作るだけであれば下記のようにする
+| Using input As New System.IO.StreamReader("文法ファイル名")
+| 
+|     Dim y As New Syntax
+|     Dim lex As New Lexer With {.Reader = input}
+|     Parser.ParseDeclaration(y, lex)
+|     Parser.ParseGrammar(y, lex)
+|     Dim nodes = Generator.LR0(y)
+|     Dim resolve = Generator.LALR1(y, nodes)
+|     Dim p = Generator.LALRParser(y, nodes, resolve)
+| End Using
+
+その後テーブル情報などからパーサの作成が行われる
+ソースコードの出力にはテンプレートエンジンにT4を利用し出力される
+以下のファイルが標準的に出力される(括弧内は対応するテンプレートファイル名)
+※一部未実装
+* 言語毎ソースコード (template.*/*.tt)
+* 詳細なテーブル情報 (verbose.tt、-vオプションで出力)
+* CSV状態遷移図      (csv.tt、    -cオプションで出力)
+* Graphviz状態遷移図 (graph.tt、  -gオプションで出力)
+
+ここではParserとGeneratorの内部処理、および言語毎ソースコード出力までを中心に解説する
+
+.定義
+構文規則は非終端記号を英小文字、終端記号を英大文字またはシングルクォートで囲んで記述する
+| s : a '+' B
+| a : A
+
+構文規則の読み込み位置は . (ピリオド)で表す、次に読み込む記号はピリオドの右側となる
+| s : a . '+' B
+
+空規則(ε遷移)のある規則はvoidと命名する
+| void :
+| void' :
+
+空規則を含む再起定義は s のサフィックスをつける
+空規則を含まない再起定義は n のサフィックスをつける
+特に説明のない場合下記のような規則があるものとする
+| args :
+|      | args arg
+| argn : arg
+|      | argn arg
+
+$で始まる規則は次の通り
++ $ACCEPT 自動挿入される開始要素、非終端記号
++ $END    入力終了を表す終端記号
++ $n      埋め込みアクション、n >= 1である
+
+特に明記のない限り結合規則は定義されていないものとする
+ただしシングルクォートで囲んだ四則演算記号は字義通りの結合規則と優先順位を持つものとする
+| %left '+' '-'
+| %left '*' '/'
+| %right '^'
+
+.Parser.ParseDeclaration
+宣言部の解析を行う
+アウトプットとしてSyntax.Declasを変更する
+
+Declasには定義された終端記号が配列として格納される
+以下のように%token、%left、%right、%nonassoc、%typeの各要素がDeclarate型として作成される
+| %left <type> A B
+| ↓
+| Syntax.Declas(0) = New Declarate With {.Name = "A", .Assoc = Left, .Priority = 優先順位, .Type = "type"}
+| Syntax.Declas(1) = New Declarate With {.Name = "B", .Assoc = Left, .Priority = 優先順位, .Type = "type"}
+
+.Parser.ParseGrammar
+構文規則部の解析を行う
+アウトプットとしてSyntax.Grammarsを変更する
+
+Syntax.Grammarsはおおよその構造が[[Declarate]]である
+未宣言のシングルクォートの文字列(終端記号)などは自動的にDeclasに追加される
+| expr : NUM '+' NUM
+|      | NUM '-' NUM
+| ↓
+| Syntax.Declas("+") = New Declarate With {.Name = "+", .Assoc = Left, .Priority = 優先順位, .Type = ""} ' 未定義の場合自動追加
+| Syntax.Grammars(expr)(0) = {
+|     Syntax.Declas(NUM),
+|     Syntax.Declas("+"),
+|     Syntax.Declas(NUM)
+| }
+| Syntax.Grammars(expr)(1) = {
+|     Syntax.Declas(NUM),
+|     Syntax.Declas("-"),
+|     Syntax.Declas(NUM)
+| }
+
+構文規則中の一番優先度の高い終端記号の結合規則を取り入れる
+%precがある場合は%precの結合規則を優先する
+※旧Yanpの説明では「構文規則の一番後ろにある終端記号の結合規則を取り入れる」とあるが、これは説明文が誤りである
+
+```yaccは構文規則のどこにでも%precが入ることを許可している'''が
+Parser.ParseGrammarでは%precは規則の末尾にしか出現してはいけない
+※現在のバージョンのYanpではyaccと同じく%precがどこにでも入るが、これはバグである
+| %nonassoc UMINUS
+| %%
+| × e : %prec UMINUS '-' e
+| ○ e :              '-' e %prec UMINUS
+
+..アクション
+構文の最後のアクションは配列のGrammarLine.Actionに保存されることになる
+これは還元の際にGrammarLine.Actionが実行されることを意味する
+
+| s: A B {action}
+| ↓
+| Dim line = {Syntax.Declas(A), Syntax.Declas(B)}
+| line.Action = {action}
+| Syntax.Grammars(s)(0) = line
+
+構文要素がない場合(空規則)は長さ0のGrammarLineを作る
+
+| s: {action}
+| ↓
+| Dim line = {}
+| line.Action = {action}
+| Syntax.Grammars(s)(0) = line
+
+埋め込みアクションの場合は擬似的な構文要素として空規則を追加する
+
+| s: {action} A
+| ↓
+| s:  $1 A
+| $1: {action}
+| ↓
+| Dim line = {Syntax.Declas($1), Syntax.Declas(A)}
+| Syntax.Grammars(s)(0) = line
+| 
+| Dim line2 = {}
+| line2.Action = {action}
+| Syntax.Grammars($1)(0) = line2
+
+
+.Generator.LR0
+前述のSyntax.Declas、Syntax.GrammarsよりLR(0)集合を作る
+アウトプットとして[Node](LR(0)集合)を作成する
+
+まず開始要素の次にファイル終端が現れる規則が自動で生成される
+| $ACCEPT : 開始要素 $END
+
+
+nodesにはSyntax.Grammarsの各状態対して作成される
+上記$ACCEPT～$ENDの例に取ると各要素の読み込み前にピリオドを付加し記述する
+ピリオドの次の要素を読み込むことを示す、ここでは終端記号であるなしは区別しない
+| $ACCEPT : . 開始要素 $END
+| $ACCEPT : 開始要素 . $END
+| $ACCEPT : 開始要素 $END .
+| ↓
+| nodes(0) = New Node($ACCEPT : . 開始要素 $END)
+| nodes(1) = New Node($ACCEPT : 開始要素 . $END)
+| nodes(2) = New Node($ACCEPT : 開始要素 $END .)
+| 
+| nodes(0).Nexts(0) = Generator.Nodes(1)
+| nodes(1).Nexts(0) = Generator.Nodes(2)
+Nextには次に遷移するべき要素を格納する
+これを全Syntax.Grammarsの要素に対して行う
+
+上記が完了するとfirstを作成する
+firstは各構文規則の最初に現れる記号の集合である
+$ACCEPTを例にとると最初に現れる記号は開始要素であるため次のように表す
+| first($ACCEPT) <- Node($ACCEPT : . 開始要素 $END)
+
+開始記号が複数ある場合はすべての要素を格納する
+firstの定義は String => [Node] である
+| s : a
+|   | B C
+|   | B D
+| ↓
+| first(s) <- Node(s : . a)
+| first(s) <- Node(s : . B C)
+| first(s) <- Node(s : . B D)
+
+firstを元にnodesの遷移先のマージを行う
+例えば下記のような「$ACCEPT : . s $END」の直前という状態は「s : . a」と同じとみなすことができる
+| $ACCEPT : . s $END
+| s : . a
+|   | . B C
+|   | . B D
+この操作は nodes($ACCEPT).Nexts <- first(s) と表す
+疑似コードで表すと次のようになる
+| for p in nodes
+|     for n in p.Nexts
+|          p.Nexts <- first(s) # 追加できるものがなくなるまで繰り返す
+
+この操作を行うとNode.Nextsには同じ記号で複数の遷移先を持つことになる
+1つの記号につき1つの遷移先になるようにマージを行う
+マージは単に規則を複数持つNodeとする
+| nodes($ACCEPT : . s $END).Nexts
+|    s => $ACCEPT : s . $END
+|    a => s : a .
+|    B => s : B . C # 同じBの記号による遷移先が2つある
+|    B => s : B . D
+| ↓
+| nodes($ACCEPT : . s $END).Nexts
+|    s => $ACCEPT : s . $END
+|    a => s : a .
+|    B => s : B . C , s : B . D # Bの遷移先をマージする
+
+
+.Generator.LALR1
+前述のnodes(LR(0)集合)に先読み記号を追加する
+アウトプットとして Node => [String](先読み Look-a-Head)と String => [String](Follow-set)を作成する
+
+まずnullableを作成する
+nullableは空規則をもつ非終端記号をマークしたものとなる
+下記の3例は全てnullableである
+| a :            # 空規則を持つ
+| b : void void' # 空規則の非終端記号のみからなる
+| c : args       # 空規則の可能性のある非終端記号のみからなる
+
+次に先読み記号を集めたlook-a-headを作成する
+状態の次に来る非終端記号を集める
+状態の次に来るものがnullableである場合、次の先読み記号をマージする
+| s : . a B    # look-a-head(s : . a B) <- B である
+| s : . a args # look-a-head(s : . a args) <- look-a-head(s : a . args) である
+疑似コードで表すと次のようになる
+| for p in nodes
+|     for n in p.Nexts
+|         if nullable(n)
+|             look-a-head(p) <- look-a-head(n) # 追加できるものがなくなるまで繰り返す
+|         else if n が非終端記号
+|             look-a-head(p) <- n # 追加できるものがなくなるまで繰り返す
+
+最後に規則に続く記号の集合follow-setを作成する
+follow-setの初期状態はlook-a-headを流用する
+規則の次に来る非終端記号を集める
+規則の次に来るものがnullableである場合、次のfollow-setをマージする
+| s : a .      # follow-set(a) <- follow-set(s) である
+| s : a . void # follow-set(a) <- follow-set(void) である
+| 
+疑似コードで表すと次のようになる
+| for p in nodes
+|    follow-set(p) <- look-a-head(p)
+| for p in nodes
+|     for n in p.Lines
+|         if n が空規則でなく規則末尾の非終端記号
+|             follow-set(n) <- follow-set(p) # 追加できるものがなくなるまで繰り返す
+|         if n が空規則でなく規則末尾以外の非終端記号で nullable(n + 1)
+|             follow-set(n) <- follow-set(n + 1) # 追加できるものがなくなるまで繰り返す
+
+..衝突回避
+ここまでのnodesでは下記のような規則において還元還元衝突(reduce/reduce conflict)を起こしてしまう
+式として「左辺 = 右辺」か「右辺」のみ受け付けるといった規則があるとする
+参考) コンパイラ 原理・技法・ツール1より(http://www.amazon.co.jp/dp/4781905854)
+| $ACCEPT : expr $END
+| expr    : left '=' right
+|         | right
+| left    : right
+| right   : ID
+まずIDを読み込んだ時点で、まず「right : ID .」を還元する
+次に「expr : right .」と「expr : . left '=' right」からきた「left : right .」のどちらでも還元可能なため還元還元衝突となる
+解決策は次の入力が'='であれば「left : right .」、$ENDの場合は「expr : right .」とすべきである
+先読みを実装すれば解決する
