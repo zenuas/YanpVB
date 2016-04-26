@@ -181,6 +181,19 @@ Public Class Generator
                 Next
             Next
 
+            For Each p In nodes
+
+                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count > x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name) AndAlso nullable.ContainsKey(x.Line.Grams(x.Index).Name))
+
+                    Dim name = line.Line.Grams(line.Index - 1).Name
+                    For Each a In follow(line.Line.Grams(line.Index).Name).Where(Function(x) Not follow(name).Contains(x))
+
+                        follow(name).Add(a)
+                        Continue Do
+                    Next
+                Next
+            Next
+
             Exit Do
         Loop
 
