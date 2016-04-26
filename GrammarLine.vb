@@ -18,6 +18,6 @@ Public Class GrammarLine
 
     Public Overrides Function ToString() As String
 
-        Return $"{Me.Name} : {String.Join(" ", Me.Grams.Map(Function(x) x.Name))}"
+        Return $"{Me.Name} :{String.Join("", Me.Grams.Map(Function(x) $" {x.Name}"))}"
     End Function
 End Class

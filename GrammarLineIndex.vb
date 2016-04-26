@@ -14,11 +14,11 @@ Public Class GrammarLineIndex
 
     Public Overrides Function ToString() As String
 
-        Dim s As New StringBuilder($"{Me.Line.Name} : ")
+        Dim s As New StringBuilder($"{Me.Line.Name} :")
         For i = 0 To Me.Line.Grams.Count
 
-            If i = Me.Index Then s.Append(". ")
-            If i < Me.Line.Grams.Count Then s.Append($"{Me.Line.Grams(i).Name} ")
+            If i = Me.Index Then s.Append(" .")
+            If i < Me.Line.Grams.Count Then s.Append($" {Me.Line.Grams(i).Name}")
         Next
         Return s.ToString
     End Function
