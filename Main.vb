@@ -17,7 +17,7 @@ Public Class Main
         y.FooterCode.Append(lex.Reader.ReadToEnd)
         Dim nodes = Generator.LR0(y)
         Dim resolve = Generator.LALR1(y, nodes)
-        Dim p = Generator.LALRParser(y, nodes, resolve)
+        Dim table = Generator.LALRParser(y, nodes, resolve.Item1, resolve.Item2)
 
         Dim dir_templates = Path.Combine(opt.BasePath, $"template.{opt.Template}")
         Dim err As System.CodeDom.Compiler.CompilerErrorCollection = Nothing
@@ -43,7 +43,7 @@ Public Class Main
             }
         host.Session("Syntax") = y
         host.Session("Nodes") = nodes
-        host.Session("ParserTable") = p
+        host.Session("ParserTable") = table
 
         Dim create_template =
             Function(template As String, output As TextWriter)
@@ -63,7 +63,7 @@ Public Class Main
 
                     If output Is Nothing Then
 
-                        Using x As New StreamWriter($"{Path.GetFileNameWithoutExtension(template)}{host.FileExtension}")
+                        Using x As New StreamWriter($"{opt.Prefix}{Path.GetFileNameWithoutExtension(template)}{host.FileExtension}")
 
                             x.Write(out)
                         End Using

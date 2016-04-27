@@ -80,7 +80,6 @@
     <Compile Include="Lexer.vb" />
     <Compile Include="ParserAction.vb" />
     <Compile Include="ReduceAction.vb" />
-    <Compile Include="ResolveConflict.vb" />
     <Compile Include="Main.vb" />
     <Compile Include="ParseException.vb" />
     <Compile Include="Parser.vb" />

@@ -119,7 +119,7 @@ Public Class Generator
         Return nodes.Where(Function(x) mark.ContainsKey(x)).ToList
     End Function
 
-    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As ResolveConflict
+    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As Tuple(Of Dictionary(Of Node, List(Of String)), Dictionary(Of String, List(Of String)))
 
         Dim nullable = y.Grammars.Map(Function(x) x.Name).ToHash_ValueDerivation(Function(x) False)
         Do While True
@@ -197,10 +197,10 @@ Public Class Generator
             Exit Do
         Loop
 
-        Return New ResolveConflict With {.LookAHead = lookahead, .Follow = follow}
+        Return Tuple.Create(lookahead, follow)
     End Function
 
-    Public Shared Function LALRParser(y As Syntax, nodes As List(Of Node), resolve As ResolveConflict) As List(Of Dictionary(Of String, ParserAction))
+    Public Shared Function LALRParser(y As Syntax, nodes As List(Of Node), lookahead As Dictionary(Of Node, List(Of String)), follow As Dictionary(Of String, List(Of String))) As List(Of Dictionary(Of String, ParserAction))
 
         Return nodes.Map(
             Function(p)
@@ -214,9 +214,9 @@ Public Class Generator
                 For Each reduce In p.Lines.Where(Function(x) x.Index = x.Line.Grams.Count)
 
                     ' any reduce
-                    If Not resolve.Follow.ContainsKey(reduce.Line.Name) Then Continue For
+                    If Not follow.ContainsKey(reduce.Line.Name) Then Continue For
 
-                    For Each r In resolve.Follow(reduce.Line.Name)
+                    For Each r In follow(reduce.Line.Name)
 
                         If Not line.ContainsKey(r) Then
 
