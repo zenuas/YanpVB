@@ -96,7 +96,7 @@ Public Class Parser
         Dim get_register_decla =
             Function(token As Token) As Declarate
 
-                If Not y.Declas.ContainsKey(token.Name) Then y.Declas.Add(token.Name, New Declarate With {.Name = token.Name, .Assoc = AssocTypes.Type, .Type = y.Default})
+                If Not y.Declas.ContainsKey(token.Name) Then y.Declas.Add(token.Name, New Declarate With {.Name = token.Name, .Assoc = AssocTypes.Type})
                 Return y.Declas(token.Name)
             End Function
 
@@ -126,6 +126,7 @@ ReStart_:
                                 line.Action = last_line.Action
                                 line.Grams.RemoveAt(line.Grams.Count - 1)
                                 y.Grammars.Remove(last_line)
+                                y.Declas.Remove(last_line.Name)
                                 action_count -= 1
                             End If
                         End Sub
@@ -162,6 +163,7 @@ ReStart_:
                                 line.Grams.Add(action)
                                 Dim action_line As New GrammarLine With {.Name = action.Name, .Action = ReadAction(lex)}
                                 y.Grammars.Add(action_line)
+                                y.Declas.Add(action.Name, action)
 
                             Case TokenTypes.Token,
                                 TokenTypes.CharValue
