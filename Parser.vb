@@ -120,15 +120,16 @@ ReStart_:
                     Dim trim_action =
                         Sub()
 
-                            Dim last_line = y.Grammars(y.Grammars.Count - 1)
-                            If last_line.HasAction Then
+                            If line IsNot Nothing AndAlso line.Grams.Count > 0 AndAlso line.Grams(line.Grams.Count - 1).IsAction Then
 
+                                Dim last_line = y.Grammars(y.Grammars.Count - 1)
                                 line.Action = last_line.Action
                                 line.Grams.RemoveAt(line.Grams.Count - 1)
                                 y.Grammars.Remove(last_line)
                                 y.Declas.Remove(last_line.Name)
                                 action_count -= 1
                             End If
+                            line = Nothing
                         End Sub
 
 
@@ -159,7 +160,7 @@ ReStart_:
 
                                 lex.ReadToken()
                                 action_count += 1
-                                Dim action As New Declarate With {.Name = $"{{{action_count}}}", .Assoc = AssocTypes.Type}
+                                Dim action As New Declarate With {.Name = $"{{{action_count}}}", .Assoc = AssocTypes.Type, .IsAction = True}
                                 line.Grams.Add(action)
                                 Dim action_line As New GrammarLine With {.Name = action.Name, .Action = ReadAction(lex)}
                                 y.Grammars.Add(action_line)
@@ -205,6 +206,7 @@ ReStart_:
                                 Throw New ParseException(lex.LineNo, lex.LineColumn, "bad sequence grammar token")
                         End Select
                     Loop
+                    trim_action()
 
                 Case TokenTypes.PartEnd
 
