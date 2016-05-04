@@ -7,38 +7,45 @@
 <#@ parameter type="Yanp.Syntax" name="Syntax" #>
 <#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
 <#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
+<#@ parameter type="System.Collections.Generic.Dictionary(Of Integer, System.Collections.Generic.List(Of String))" name="ParserError" #>
 <#
+Dim show_conflict As Action(Of Integer) =
+	Sub(i As Integer)
+		If Me.ParserError.ContainsKey(i) Then
+			
+			For Each e As String In Me.ParserError(i)
+				
+				Me.WriteLine(e.ToString)
+			Next
+		End If
+	End Sub
+
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
 Dim state = 0
 For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 	
-#>state <#= state #>
-	<#= Me.Nodes(state).ToString.Replace(Environment.NewLine, Environment.NewLine + "	") #>
-
-<#
+	show_conflict(state)
+	Me.WriteLine("state " + state.ToString)
+	Me.WriteLine("	" + Me.Nodes(state).ToString.Replace(Environment.NewLine, Environment.NewLine + "	"))
+	Me.WriteLine("")
+	
 	Dim shift_exists = False
 	For Each shift As KeyValuePair(Of String, ParserAction) In p.Where(Function(x) TypeOf x.Value Is ShiftAction)
 		
-#>	<#= shift.Key #>  shift <#= node_to_index(CType(shift.Value, ShiftAction).Next) #>
-<#
+		Me.WriteLine("	" + shift.Key + "  shift " + node_to_index(CType(shift.Value, ShiftAction).Next).ToString())
 		shift_exists = True
 	Next
 	
-	If shift_exists Then
-#>
-
-<#
-	End If
+	If shift_exists Then Me.WriteLine("")
 	
 	For Each reduce As KeyValuePair(Of String, ParserAction) In p.Where(Function(x) TypeOf x.Value Is ReduceAction)
 		
-#>	<#= reduce.Key #>  reduce -> <#= CType(reduce.Value, ReduceAction).Reduce #>
-<#
+		Me.WriteLine("	" + reduce.Key + "  reduce -> " + CType(reduce.Value, ReduceAction).Reduce.ToString())
 	Next
 	
 	state = state + 1
-#>
-
-<#
+	Me.WriteLine("")
 Next
+
+show_conflict(-1)
 #>

@@ -201,10 +201,16 @@ Public Class Generator
         Return Tuple.Create(lookahead, follow)
     End Function
 
-    Public Shared Function LALRParser(y As Syntax, nodes As List(Of Node), lookahead As Dictionary(Of Node, List(Of String)), follow As Dictionary(Of String, List(Of String))) As List(Of Dictionary(Of String, ParserAction))
+    Public Shared Function LALRParser(
+            y As Syntax,
+            nodes As List(Of Node),
+            lookahead As Dictionary(Of Node, List(Of String)),
+            follow As Dictionary(Of String, List(Of String))
+        ) As Tuple(Of List(Of Dictionary(Of String, ParserAction)), Dictionary(Of Integer, List(Of String)))
 
-        Return nodes.Map(
-            Function(p)
+        Dim conflict As New Dictionary(Of Integer, List(Of String))
+        Return Tuple.Create(nodes.Map(
+            Function(p, i)
 
                 lookahead = lookahead
                 Dim line As New Dictionary(Of String, ParserAction)
@@ -212,6 +218,12 @@ Public Class Generator
 
                     line(shift.Name) = New ShiftAction With {.Next = shift}
                 Next
+
+                Dim add_conflict =
+                    Sub(e As String)
+                        If Not conflict.ContainsKey(i) Then conflict.Add(i, New List(Of String))
+                        conflict(i).Add(e)
+                    End Sub
 
                 For Each reduce In p.Lines.Where(Function(x) x.Index = x.Line.Grams.Count)
 
@@ -239,17 +251,19 @@ Public Class Generator
                                 Case Else
                                     ' shift/reduce conflict
                                     'System.Diagnostics.Debug.Fail("shift/reduce conflict")
+                                    add_conflict($"shift/reduce conflict (shift {CType(line(r), ShiftAction).Next.Name}, reduce {reduce.ToString})")
 
                             End Select
                         Else
 
                             ' reduce/reduce conflict
-                            System.Diagnostics.Debug.Fail("reduce/reduce conflict")
+                            'System.Diagnostics.Debug.Fail("reduce/reduce conflict")
+                            add_conflict($"reduce/reduce conflict (reduce {CType(line(r), ReduceAction).ToString}, reduce {reduce.ToString})")
                         End If
                     Next
                 Next
                 Return line
-            End Function).ToList
+            End Function).ToList, conflict)
     End Function
 
 End Class
