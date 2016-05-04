@@ -158,8 +158,22 @@ Dim vb_reserved_word = {
 	}.Map(Function (x) x.ToUpper()).ToHash_ValueDerivation(Function (x) True)
 
 Dim used_term As New Dictionary(Of String, Integer)
-Dim terms = Syntax.Declas.Keys.ToHash_ValueDerivation(Function(x, i) i)
-Dim vbterms = Syntax.Declas.Keys.ToHash_ValueDerivation(
+Dim sorted_terms As List(Of String) = Syntax.Declas.Keys.SortToList(
+	Function(a, b)
+		
+		Dim ax = Syntax.Declas(a)
+		Dim bx = Syntax.Declas(b)
+		
+		If ax.IsTerminalSymbol AndAlso Not bx.IsTerminalSymbol Then Return -1
+		If Not ax.IsTerminalSymbol AndAlso bx.IsTerminalSymbol Then Return 1
+
+		If a.StartsWith("$") AndAlso Not b.StartsWith("$") Then Return 1
+		If Not a.StartsWith("$") AndAlso b.StartsWith("$") Then Return -1
+
+		Return String.Compare(a, b)
+	End Function)
+Dim terms = sorted_terms.ToHash_ValueDerivation(Function(x, i) i)
+Dim vbterms = sorted_terms.ToHash_ValueDerivation(
 	Function(x)
 		
 		x = Regex.Replace(x, "^'|'$", "")

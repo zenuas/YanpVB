@@ -8,7 +8,7 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
     Public Enum SymbolTypes As Integer
 <#
 Dim isfirst = True
-For Each x As String In terms.Keys
+For Each x As String In sorted_terms
 #>
 
         ''' <summary><#= x #></summary>

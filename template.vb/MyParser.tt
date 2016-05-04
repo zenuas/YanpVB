@@ -20,6 +20,7 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
 Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
 Dim count = Me.ParserTable.Count
+terms.Remove("$ACCEPT")
 For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 	
 	count = count - 1

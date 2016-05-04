@@ -10,7 +10,7 @@ Public Class Generator
         If y.Grammars.FindFirstOrNull(Function(x) x.Name = y.Start) Is Nothing Then Throw New ParseException($"the start symbol {y.Start} is undefined")
 
         ' $ACCEPT : y.Start $END
-        Dim accept As New Declarate With {.Name = "$ACCEPT"}
+        Dim accept As New Declarate With {.Name = "$ACCEPT", .IsTerminalSymbol = False}
         Dim end_ As New Declarate With {.Name = "$END"}
         Dim accept_line As New GrammarLine With {.Name = accept.Name}
         accept_line.Grams.Add(y.Declas(y.Start))
@@ -48,20 +48,21 @@ Public Class Generator
         ' next
         Do While True
 
+            Dim retry = False
             For Each p In nodes
 
-                For Each head In p.NextNodes.Where(Function(x) first.ContainsKey(x.Name)).Map(Function(x) first(x.Name)).Flatten
+                For Each head In p.NextNodes.Where(Function(x) first.ContainsKey(x.Name)).Map(Function(x) first(x.Name)).Flatten.ToList
 
-                    head.Lines.Do(Sub(x) If p.Lines.FindFirstOrNull(Function(line) x.Equals(line)) Is Nothing Then p.Lines.Add(x))
+                    head.Lines.Do(Sub(x) If Not p.Lines.Contains(x) Then p.Lines.Add(x))
                     For Each head_next In head.NextNodes.Where(Function(x) Not p.NextNodes.Contains(x))
 
                         p.NextNodes.Add(head_next)
-                        Continue Do
+                        retry = True
                     Next
                 Next
             Next
 
-            Exit Do
+            If Not retry Then Exit Do
         Loop
 
         ' merge
@@ -205,6 +206,7 @@ Public Class Generator
         Return nodes.Map(
             Function(p)
 
+                lookahead = lookahead
                 Dim line As New Dictionary(Of String, ParserAction)
                 For Each shift In p.NextNodes
 
@@ -236,7 +238,7 @@ Public Class Generator
 
                                 Case Else
                                     ' shift/reduce conflict
-                                    System.Diagnostics.Debug.Fail("shift/reduce conflict")
+                                    'System.Diagnostics.Debug.Fail("shift/reduce conflict")
 
                             End Select
                         Else

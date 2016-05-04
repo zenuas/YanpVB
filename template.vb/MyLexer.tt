@@ -13,13 +13,13 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
             MyBase.New(reader)
 
 <#
-For Each c As String In terms.Keys
+For Each c As String In sorted_terms
 	
 	If c.Chars(0) <> "'"c Then Continue For
 #>            Me.ReservedChar(<#= Regex.Replace(c, "^'|'$", """") #>c) = SymbolTypes.<#= vbterms(c) #>
 <#
 Next
-For Each c As String In terms.Keys
+For Each c As String In sorted_terms
 	
 	If c.Chars(0) = "'"c OrElse c.Chars(0) = "$"c OrElse Not Syntax.Grammars.Where(Function(g) g.Name = c).IsNull Then Continue For
 #>            Me.ReservedWord("<#= c #>") = SymbolTypes.<#= vbterms(c) #>

@@ -1,0 +1,34 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".vb" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ import namespace="Yanp" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
+<#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
+<#
+Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
+Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
+
+sorted_terms.Remove("$ACCEPT")
+terms.Remove("$ACCEPT")
+For Each p As String In sorted_terms
+	Me.Write("," + p)
+Next
+Me.WriteLine("")
+
+Dim linenum = 0
+For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
+	
+	Dim line(terms.Keys.Count - 1) As Integer
+	For Each action As KeyValuePair(Of String, ParserAction) In p
+		
+		line(terms(action.Key)) = If(TypeOf action.Value Is ShiftAction,
+				node_to_index(CType(action.Value, ShiftAction).Next),
+				reduce_to_index(CType(action.Value, ReduceAction).Reduce)
+			)
+	Next
+	Me.WriteLine(linenum.ToString + "," + String.Join(",", line))
+	linenum += 1
+Next
+#>
