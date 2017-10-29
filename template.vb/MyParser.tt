@@ -15,7 +15,7 @@ Namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
     Public Class MyParser
         Inherits Parser(Of <#= Syntax.Default #>)
 
-        Private Shared ReadOnly tables_(,) As Integer = {
+        Public Shared ReadOnly tables_(,) As Integer = {
 <#
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
 Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
@@ -38,12 +38,12 @@ Next
 #>
             }
 
-        Protected Overrides Function CreateTable() As Integer(,)
+        Public Overrides Function CreateTable() As Integer(,)
 
             Return tables_
         End Function
 
-        Protected Overrides Function RunAction(yy_no As Integer) As IToken(Of <#= Syntax.Default #>)
+        Public Overrides Function RunAction(yy_no As Integer) As IToken(Of <#= Syntax.Default #>)
 
             Dim yy_token As IToken(Of <#= Syntax.Default #>) = Nothing
             Dim yy_value As <#= Syntax.Default #> = Nothing
@@ -89,7 +89,7 @@ Next
             Return yy_token
         End Function
 
-        Protected Overridable Overloads Function DoAction(
+        Public Overridable Overloads Function DoAction(
                 type As SymbolTypes,
                 length As Integer,
                 value As <#= Syntax.Default #>
@@ -98,7 +98,7 @@ Next
             Return Me.DoAction(New Token(type), length, value)
         End Function
 
-        Protected Overrides Sub OnError(lex As Lexer(Of <#= Syntax.Default #>))
+        Public Overrides Sub OnError(lex As Lexer(Of <#= Syntax.Default #>))
 
             Debug.Fail("syntax error")
             Throw New SyntaxErrorException(lex.LineNumber, lex.LineColumn, "syntax error")
