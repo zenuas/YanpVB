@@ -258,7 +258,7 @@ Public Class Generator
 
                             ' reduce/reduce conflict
                             'System.Diagnostics.Debug.Fail("reduce/reduce conflict")
-                            add_conflict($"reduce/reduce conflict (reduce {CType(line(r), ReduceAction).ToString}, reduce {reduce.ToString})")
+                            add_conflict($"reduce/reduce conflict (reduce {CType(line(r), ReduceAction).Reduce.ToString}, reduce {reduce.ToString})")
                         End If
                     Next
                 Next
