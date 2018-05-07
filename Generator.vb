@@ -251,14 +251,14 @@ Public Class Generator
                                 Case Else
                                     ' shift/reduce conflict
                                     'System.Diagnostics.Debug.Fail("shift/reduce conflict")
-                                    add_conflict($"shift/reduce conflict (shift {CType(line(r), ShiftAction).Next.Name}, reduce {reduce.ToString})")
+                                    add_conflict($"shift/reduce conflict ([shift] {CType(line(r), ShiftAction).Next.Name}, [reduce] {reduce.ToString})")
 
                             End Select
                         Else
 
                             ' reduce/reduce conflict
                             'System.Diagnostics.Debug.Fail("reduce/reduce conflict")
-                            add_conflict($"reduce/reduce conflict (reduce {CType(line(r), ReduceAction).Reduce.ToString}, reduce {reduce.ToString})")
+                            add_conflict($"reduce/reduce conflict ([reduce] {CType(line(r), ReduceAction).Reduce.ToString}, [reduce] {reduce.ToString})")
                         End If
                     Next
                 Next
