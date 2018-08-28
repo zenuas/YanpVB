@@ -11,7 +11,7 @@ Dim isfirst = True
 For Each x As String In sorted_terms
 #>
 
-        ''' <summary><#= x #></summary>
+        ''' <summary><#= x.Replace("<", "&lt;") #></summary>
         <#= vbterms(x) + If(isfirst, " = 0", "") #>
 <#
 	isfirst = False
