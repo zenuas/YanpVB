@@ -1,7 +1,7 @@
 <#@ template language="VB" debug="true" hostSpecific="true" #>
 <#@ output extension=".vb" encoding="UTF-8" #>
 <#@ assembly name="yanp.exe" #>
-<#@ include file="Utility.tt.vb" #>
+<#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="Yanp" #>
 <#@ parameter type="Yanp.Syntax" name="Syntax" #>
 <#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
@@ -9,6 +9,22 @@
 <#
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
 Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
+
+Dim sorted_terms As List(Of String) = Syntax.Declas.Keys.SortToList(
+	Function(a, b)
+		
+		Dim ax = Syntax.Declas(a)
+		Dim bx = Syntax.Declas(b)
+		
+		If ax.IsTerminalSymbol AndAlso Not bx.IsTerminalSymbol Then Return -1
+		If Not ax.IsTerminalSymbol AndAlso bx.IsTerminalSymbol Then Return 1
+
+		If a.StartsWith("$") AndAlso Not b.StartsWith("$") Then Return 1
+		If Not a.StartsWith("$") AndAlso b.StartsWith("$") Then Return -1
+
+		Return String.Compare(a, b)
+	End Function)
+Dim terms = sorted_terms.ToHash_ValueDerivation(Function(x, i) i)
 
 sorted_terms.Remove("$ACCEPT")
 terms.Remove("$ACCEPT")
