@@ -142,6 +142,14 @@ Public Module ArrayExtension
     End Function
 
     <Extension>
+    Public Function ToHashSet(Of T)(self As IEnumerable(Of T)) As HashSet(Of T)
+
+        Dim hash As New HashSet(Of T)
+        self.Do(Sub(x, i) hash.Add(x))
+        Return hash
+    End Function
+
+    <Extension>
     Public Iterator Function Reverse(Of T)(self As IList(Of T)) As IEnumerable(Of T)
 
         For i = self.Count - 1 To 0 Step -1

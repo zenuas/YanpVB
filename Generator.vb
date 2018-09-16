@@ -120,7 +120,7 @@ Public Class Generator
         Return nodes.Where(Function(x) mark.ContainsKey(x)).ToList
     End Function
 
-    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As Tuple(Of Dictionary(Of Node, List(Of String)), Dictionary(Of String, List(Of String)))
+    Public Shared Function LALR1(y As Syntax, nodes As List(Of Node)) As Dictionary(Of Node, Dictionary(Of GrammarLine, HashSet(Of String)))
 
         Dim nullable = y.Grammars.Map(Function(x) x.Name).ToHash_ValueDerivation(Function(x) False)
         Do While True
@@ -138,81 +138,74 @@ Public Class Generator
             Exit Do
         Loop
 
-        Dim lookahead = nodes.ToHash_ValueDerivation(Function(x) New List(Of String))
-        Do While True
+        Dim first = nodes.ToHash_ValueDerivation(Function(x) x.NextNodes.Map(Function(p) p.Name).Where(Function(name) Not nullable.ContainsKey(name)).ToHashSet)
+        Dim lookahead = nodes.ToHash_ValueDerivation(Function(x) New Dictionary(Of GrammarLine, HashSet(Of String)))
+        Dim search_head =
+            Function(p As Node, reduce As String) As List(Of String)
 
-            For Each p In nodes
+                Dim hash As New HashSet(Of String) From {reduce}
+                Do While True
 
-                For Each next_ In p.NextNodes
+                    For Each lin In p.Lines.Where(Function(x) Not hash.Contains(x.Line.Name) AndAlso
+                                                              x.Index < x.Line.Grams.Count AndAlso
+                                                              hash.Contains(x.Line.Grams(x.Index).Name) AndAlso
+                                                              x.Line.Grams.Range(x.Index + 1).And(Function(g) nullable.ContainsKey(g.Name) AndAlso nullable(g.Name)))
 
-                    Dim name = next_.Name
-                    If nullable.ContainsKey(name) AndAlso nullable(name) Then
-
-                        For Each ahead In lookahead(next_).Where(Function(x) Not lookahead(p).Contains(x))
-
-                            lookahead(p).Add(ahead)
-                            Continue Do
-                        Next
-
-                    ElseIf Not nullable.ContainsKey(name) AndAlso Not lookahead(p).Contains(name) Then
-
-                        lookahead(p).Add(name)
-                        Continue Do
-                    End If
-                Next
-            Next
-
-            Exit Do
-        Loop
-
-        Dim follow = nullable.Cdr.Map(Function(x) x.Key).ToHash_ValueDerivation(Function(x) New List(Of String))
-        nodes.Do(Sub(x) If follow.ContainsKey(x.Name) Then follow(x.Name) = follow(x.Name).Join(lookahead(x)).SortToList.Unique.ToList)
-        Do While True
-
-            For Each p In nodes
-
-                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count = x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name))
-
-                    Dim name = line.Line.Grams(line.Index - 1).Name
-                    For Each a In follow(line.Line.Name).Where(Function(x) Not follow(name).Contains(x))
-
-                        follow(name).Add(a)
+                        hash.Add(lin.Line.Name)
                         Continue Do
                     Next
-                Next
+
+                    Exit Do
+                Loop
+
+                Return hash.ToList
+            End Function
+        Dim search_next =
+            Function(p As Node, head As String) As HashSet(Of String)
+
+                Dim hash As New HashSet(Of String)
+                Dim next_first As Action(Of Node, String) =
+                    Sub(p2, head2)
+
+                        p2.NextNodes.Where(Function(x) x.Name.Equals(head2)).Do(
+                            Sub(n)
+
+                                first(n).Do(Sub(x) hash.Add(x))
+                                n.NextNodes.Where(Function(x) nullable.ContainsKey(x.Name) AndAlso nullable(x.Name)).Do(Sub(x) next_first(n, x.Name))
+                            End Sub)
+                    End Sub
+                next_first(p, head)
+                Return hash
+            End Function
+
+        For Each p In nodes
+
+            For Each index In p.Lines
+
+                If index.Index < index.Line.Grams.Count Then Continue For
+
+                Dim line = index.Line
+                Dim reduce = line.Name
+                lookahead(p).Add(line, New HashSet(Of String))
+                p.NextNodes.Where(Function(x) x.Name.Equals(reduce)).Do(Sub(next_) first(next_).Do(Sub(x) lookahead(p)(line).Add(x)))
+                search_head(p, reduce).Do(Sub(head) search_next(p, head).Do(Sub(x) lookahead(p)(line).Add(x)))
             Next
+        Next
 
-            For Each p In nodes
-
-                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count > x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name) AndAlso nullable.ContainsKey(x.Line.Grams(x.Index).Name))
-
-                    Dim name = line.Line.Grams(line.Index - 1).Name
-                    For Each a In follow(line.Line.Grams(line.Index).Name).Where(Function(x) Not follow(name).Contains(x))
-
-                        follow(name).Add(a)
-                        Continue Do
-                    Next
-                Next
-            Next
-
-            Exit Do
-        Loop
-
-        Return Tuple.Create(lookahead, follow)
+        Return lookahead
     End Function
 
     Public Shared Function LALRParser(
             y As Syntax,
             nodes As List(Of Node),
-            lookahead As Dictionary(Of Node, List(Of String)),
-            follow As Dictionary(Of String, List(Of String))
+            lookahead As Dictionary(Of Node, Dictionary(Of GrammarLine, HashSet(Of String)))
         ) As Tuple(Of List(Of Dictionary(Of String, ParserAction)), Dictionary(Of Integer, List(Of String)))
 
         Dim conflict As New Dictionary(Of Integer, List(Of String))
         Return Tuple.Create(nodes.Map(
             Function(p, i)
 
-                lookahead = lookahead
+                If i = 314 Then i = i
                 Dim line As New Dictionary(Of String, ParserAction)
                 For Each shift In p.NextNodes
 
@@ -221,46 +214,53 @@ Public Class Generator
 
                 Dim add_conflict =
                     Sub(e As String)
+
                         If Not conflict.ContainsKey(i) Then conflict.Add(i, New List(Of String))
                         conflict(i).Add(e)
                     End Sub
 
-                For Each reduce In p.Lines.Where(Function(x) x.Index = x.Line.Grams.Count)
+                Dim add_action =
+                    Sub(name As String, reduce As GrammarLine)
 
-                    ' any reduce
-                    If Not follow.ContainsKey(reduce.Line.Name) Then Continue For
+                        If Not line.ContainsKey(name) Then
 
-                    For Each r In follow(reduce.Line.Name)
+                            line(name) = New ReduceAction With {.Reduce = reduce}
 
-                        If Not line.ContainsKey(r) Then
+                        ElseIf TypeOf line(name) Is ShiftAction Then
 
-                            line(r) = New ReduceAction With {.Reduce = reduce.Line}
-
-                        ElseIf TypeOf line(r) Is ShiftAction Then
-
+                            Dim decla = y.Declas(name)
                             Select Case _
-                                If(reduce.Line.Priority > y.Declas(r).Priority, AssocTypes.Left,
-                                If(reduce.Line.Priority < y.Declas(r).Priority, AssocTypes.Right,
-                                reduce.Line.Assoc))
+                                If(reduce.Priority > decla.Priority, reduce.Assoc,
+                                If(reduce.Priority < decla.Priority, decla.Assoc,
+                                reduce.Assoc))
 
                                 Case AssocTypes.Left
-                                    line(r) = New ReduceAction With {.Reduce = reduce.Line}
 
                                 Case AssocTypes.Right
+                                    line(name) = New ReduceAction With {.Reduce = reduce}
 
                                 Case Else
                                     ' shift/reduce conflict
-                                    'System.Diagnostics.Debug.Fail("shift/reduce conflict")
-                                    add_conflict($"shift/reduce conflict ([shift] {CType(line(r), ShiftAction).Next.Name}, [reduce] {reduce.ToString})")
+                                    add_conflict($"shift/reduce conflict ([shift] {CType(line(name), ShiftAction).Next.Name}, [reduce] {reduce.ToString})")
 
                             End Select
                         Else
 
                             ' reduce/reduce conflict
-                            'System.Diagnostics.Debug.Fail("reduce/reduce conflict")
-                            add_conflict($"reduce/reduce conflict ([reduce] {CType(line(r), ReduceAction).Reduce.ToString}, [reduce] {reduce.ToString})")
+                            add_conflict($"reduce/reduce conflict ([reduce] {CType(line(name), ReduceAction).Reduce.ToString}, [reduce] {reduce.ToString})")
                         End If
-                    Next
+                    End Sub
+
+                For Each r In lookahead(p)
+
+                    Dim reduce = r.Key
+                    If r.Value.IsNull Then
+
+                        ' any reduce
+                        y.Declas.Values.Where(Function(x) x.IsTerminalSymbol).Do(Sub(x) add_action(x.Name, reduce))
+                        Continue For
+                    End If
+                    r.Value.Do(Sub(x) add_action(x, reduce))
                 Next
                 Return line
             End Function).ToList, conflict)

@@ -1,4 +1,4 @@
-﻿Imports System
+Imports System
 Imports System.IO
 
 
@@ -16,8 +16,8 @@ Public Class Main
         Parser.ParseGrammar(y, lex)
         y.FooterCode.Append(lex.Reader.ReadToEnd)
         Dim nodes = Generator.LR0(y)
-        Dim resolve = Generator.LALR1(y, nodes)
-        Dim table = Generator.LALRParser(y, nodes, resolve.Item1, resolve.Item2)
+        Dim lookahead = Generator.LALR1(y, nodes)
+        Dim table = Generator.LALRParser(y, nodes, lookahead)
 
         Dim dir_templates = Path.Combine(opt.BasePath, $"template.{opt.Template}")
         Dim err As System.CodeDom.Compiler.CompilerErrorCollection = Nothing
