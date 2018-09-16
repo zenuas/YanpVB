@@ -68,7 +68,7 @@
     <Folder Include="template.vb\" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArrayExtension.vb" />
+    <Compile Include="Extensions.vb" />
     <Compile Include="AssocTypes.vb" />
     <Compile Include="Chars.vb" />
     <Compile Include="Command\CommandLineAttribute.vb" />

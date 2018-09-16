@@ -1,7 +1,7 @@
 <#@ import namespace="System" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
-<#@ import namespace="Yanp.ArrayExtension" #>
+<#@ import namespace="Yanp.Extensions" #>
 <#
 Dim vb_reserved_word = {
 		"AddHandler",

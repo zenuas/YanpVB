@@ -53,7 +53,7 @@ Public Class Generator
 
                 For Each head In p.NextNodes.Where(Function(x) first.ContainsKey(x.Name)).Map(Function(x) first(x.Name)).Flatten.ToList
 
-                    head.Lines.Do(Sub(x) If Not p.Lines.Contains(x) Then p.Lines.Add(x))
+                    head.Lines.Each(Sub(x) If Not p.Lines.Contains(x) Then p.Lines.Add(x))
                     For Each head_next In head.NextNodes.Where(Function(x) Not p.NextNodes.Contains(x))
 
                         p.NextNodes.Add(head_next)
@@ -113,7 +113,7 @@ Public Class Generator
 
                 If mark.ContainsKey(x) Then Return
                 mark.Add(x, True)
-                x.NextNodes.Do(Sub(p) mark_proc(p))
+                x.NextNodes.Each(Sub(p) mark_proc(p))
             End Sub
         mark_proc(nodes(0)) ' $ACCEPT
 
@@ -167,11 +167,11 @@ Public Class Generator
                 Dim next_first As Action(Of Node, String) =
                     Sub(p2, head2)
 
-                        p2.NextNodes.Where(Function(x) x.Name.Equals(head2)).Do(
+                        p2.NextNodes.Where(Function(x) x.Name.Equals(head2)).Each(
                             Sub(n)
 
-                                first(n).Do(Sub(x) hash.Add(x))
-                                n.NextNodes.Where(Function(x) nullable.ContainsKey(x.Name) AndAlso nullable(x.Name)).Do(Sub(x) next_first(n, x.Name))
+                                first(n).Each(Sub(x) hash.Add(x))
+                                n.NextNodes.Where(Function(x) nullable.ContainsKey(x.Name) AndAlso nullable(x.Name)).Each(Sub(x) next_first(n, x.Name))
                             End Sub)
                     End Sub
                 next_first(p, head)
@@ -187,8 +187,8 @@ Public Class Generator
                 Dim line = index.Line
                 Dim reduce = line.Name
                 lookahead(p).Add(line, New HashSet(Of String))
-                p.NextNodes.Where(Function(x) x.Name.Equals(reduce)).Do(Sub(next_) first(next_).Do(Sub(x) lookahead(p)(line).Add(x)))
-                search_head(p, reduce).Do(Sub(head) search_next(p, head).Do(Sub(x) lookahead(p)(line).Add(x)))
+                p.NextNodes.Where(Function(x) x.Name.Equals(reduce)).Each(Sub(next_) first(next_).Each(Sub(x) lookahead(p)(line).Add(x)))
+                search_head(p, reduce).Each(Sub(head) search_next(p, head).Each(Sub(x) lookahead(p)(line).Add(x)))
             Next
         Next
 
@@ -257,10 +257,10 @@ Public Class Generator
                     If r.Value.IsNull Then
 
                         ' any reduce
-                        y.Declas.Values.Where(Function(x) x.IsTerminalSymbol).Do(Sub(x) add_action(x.Name, reduce))
+                        y.Declas.Values.Where(Function(x) x.IsTerminalSymbol).Each(Sub(x) add_action(x.Name, reduce))
                         Continue For
                     End If
-                    r.Value.Do(Sub(x) add_action(x, reduce))
+                    r.Value.Each(Sub(x) add_action(x, reduce))
                 Next
                 Return line
             End Function).ToList, conflict)
