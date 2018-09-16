@@ -187,7 +187,6 @@ Public Class Generator
                 Dim line = index.Line
                 Dim reduce = line.Name
                 lookahead(p).Add(line, New HashSet(Of String))
-                p.NextNodes.Where(Function(x) x.Name.Equals(reduce)).Each(Sub(next_) first(next_).Each(Sub(x) lookahead(p)(line).Add(x)))
                 search_head(p, reduce).Each(Sub(head) search_next(p, head).Each(Sub(x) lookahead(p)(line).Add(x)))
             Next
         Next
@@ -205,7 +204,6 @@ Public Class Generator
         Return Tuple.Create(nodes.Map(
             Function(p, i)
 
-                If i = 314 Then i = i
                 Dim line As New Dictionary(Of String, ParserAction)
                 For Each shift In p.NextNodes
 
