@@ -198,9 +198,10 @@ Public Class Generator
             y As Syntax,
             nodes As List(Of Node),
             lookahead As Dictionary(Of Node, Dictionary(Of GrammarLine, HashSet(Of String)))
-        ) As Tuple(Of List(Of Dictionary(Of String, ParserAction)), Dictionary(Of Integer, List(Of String)))
+        ) As Tuple(Of List(Of Dictionary(Of String, ParserAction)), Dictionary(Of Integer, List(Of String)), Dictionary(Of Integer, GrammarLine))
 
         Dim conflict As New Dictionary(Of Integer, List(Of String))
+        Dim anyreduce As New Dictionary(Of Integer, GrammarLine)
         Return Tuple.Create(nodes.Map(
             Function(p, i)
 
@@ -255,13 +256,14 @@ Public Class Generator
                     If r.Value.IsNull Then
 
                         ' any reduce
+                        anyreduce.Add(i, reduce)
                         y.Declas.Values.Where(Function(x) x.IsTerminalSymbol).Each(Sub(x) add_action(x.Name, reduce))
                         Continue For
                     End If
                     r.Value.Each(Sub(x) add_action(x, reduce))
                 Next
                 Return line
-            End Function).ToList, conflict)
+            End Function).ToList, conflict, anyreduce)
     End Function
 
 End Class

@@ -8,6 +8,7 @@
 <#@ parameter type="System.Collections.Generic.List(Of Yanp.Node)" name="Nodes" #>
 <#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
 <#@ parameter type="System.Collections.Generic.Dictionary(Of Integer, System.Collections.Generic.List(Of String))" name="ParserError" #>
+<#@ parameter type="System.Collections.Generic.Dictionary(Of Integer, Yanp.GrammarLine)" name="AnyReduce" #>
 <#
 Dim show_conflict As Action(Of Integer) =
 	Sub(i As Integer)
@@ -40,8 +41,14 @@ For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 	
 	For Each reduce As KeyValuePair(Of String, ParserAction) In p.Where(Function(x) TypeOf x.Value Is ReduceAction)
 		
-		Me.WriteLine("	" + reduce.Key + "  reduce -> " + CType(reduce.Value, ReduceAction).Reduce.ToString())
+		Dim r = CType(reduce.Value, ReduceAction)
+		If Me.AnyReduce.ContainsKey(state) AndAlso Me.AnyReduce(state) Is r.Reduce Then Continue For
+		Me.WriteLine("	" + reduce.Key + "  reduce -> " + r.Reduce.ToString())
 	Next
+	If Me.AnyReduce.ContainsKey(state) Then
+		
+		Me.WriteLine("	$ANY  reduce -> " + Me.AnyReduce(state).ToString())
+	End If
 	
 	state = state + 1
 	Me.WriteLine("")

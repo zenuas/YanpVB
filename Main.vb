@@ -45,6 +45,7 @@ Public Class Main
         host.Session("Nodes") = nodes
         host.Session("ParserTable") = table.Item1
         host.Session("ParserError") = table.Item2
+        host.Session("AnyReduce") = table.Item3
 
         Dim create_template =
             Function(template As String, output As TextWriter)
