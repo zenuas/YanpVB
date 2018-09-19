@@ -46,6 +46,7 @@ Public Class Main
         host.Session("ParserTable") = table.Item1
         host.Session("ParserError") = table.Item2
         host.Session("AnyReduce") = table.Item3
+        host.Session("LookAHead") = lookahead.Keys.ToHash_ValueDerivation(Function(look) lookahead(look).Keys.ToHash_ValueDerivation(Function(head) lookahead(look)(head).ToList))
 
         Dim create_template =
             Function(template As String, output As TextWriter)

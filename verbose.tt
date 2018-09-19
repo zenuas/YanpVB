@@ -9,6 +9,7 @@
 <#@ parameter type="System.Collections.Generic.List(Of System.Collections.Generic.Dictionary(Of String, Yanp.ParserAction))" name="ParserTable" #>
 <#@ parameter type="System.Collections.Generic.Dictionary(Of Integer, System.Collections.Generic.List(Of String))" name="ParserError" #>
 <#@ parameter type="System.Collections.Generic.Dictionary(Of Integer, Yanp.GrammarLine)" name="AnyReduce" #>
+<#@ parameter type="System.Collections.Generic.Dictionary(Of Yanp.Node, System.Collections.Generic.Dictionary(Of Yanp.GrammarLine, System.Collections.Generic.List(Of String)))" name="LookAHead" #>
 <#
 Dim show_conflict As Action(Of Integer) =
 	Sub(i As Integer)
@@ -20,8 +21,23 @@ Dim show_conflict As Action(Of Integer) =
 			Next
 		End If
 	End Sub
+Dim sort_terms As Func(Of String, String, Integer) =
+	Function(a, b)
+		
+		Dim ax = Syntax.Declas(a)
+		Dim bx = Syntax.Declas(b)
+		
+		If ax.IsTerminalSymbol AndAlso Not bx.IsTerminalSymbol Then Return -1
+		If Not ax.IsTerminalSymbol AndAlso bx.IsTerminalSymbol Then Return 1
+
+		If a.StartsWith("$") AndAlso Not b.StartsWith("$") Then Return 1
+		If Not a.StartsWith("$") AndAlso b.StartsWith("$") Then Return -1
+
+		Return String.Compare(a, b)
+	End Function
 
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
+Dim index_to_node = Me.Nodes.ToHash_KeyDerivation(Function(x, i) i)
 Dim state = 0
 For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 	
@@ -43,7 +59,7 @@ For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 		
 		Dim r = CType(reduce.Value, ReduceAction)
 		If Me.AnyReduce.ContainsKey(state) AndAlso Me.AnyReduce(state) Is r.Reduce Then Continue For
-		Me.WriteLine("	" + reduce.Key + "  reduce -> " + r.Reduce.ToString())
+		Me.WriteLine("	" + reduce.Key + "  reduce -> " + r.Reduce.ToString() + " [" + String.Join(", ", Me.LookAHead(index_to_node(state))(r.Reduce).SortToList(sort_terms)) + "]")
 	Next
 	If Me.AnyReduce.ContainsKey(state) Then
 		
