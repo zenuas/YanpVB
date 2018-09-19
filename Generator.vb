@@ -191,6 +191,41 @@ Public Class Generator
             Next
         Next
 
+        Dim follow = nullable.Cdr.Map(Function(x) x.Key).ToHash_ValueDerivation(Function(x) New HashSet(Of String))
+        nodes.Each(Sub(x) If follow.ContainsKey(x.Name) Then follow(x.Name) = follow(x.Name).Join(first(x)).ToHashSet)
+        Do While True
+
+            For Each p In nodes
+
+                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count = x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name))
+
+                    Dim name = line.Line.Grams(line.Index - 1).Name
+                    For Each a In follow(line.Line.Name).Where(Function(x) Not follow(name).Contains(x))
+
+                        follow(name).Add(a)
+                        Continue Do
+                    Next
+                Next
+            Next
+
+            For Each p In nodes
+
+                For Each line In p.Lines.Where(Function(x) x.Index > 0 AndAlso x.Line.Grams.Count > x.Index AndAlso follow.ContainsKey(x.Line.Grams(x.Index - 1).Name) AndAlso nullable.ContainsKey(x.Line.Grams(x.Index).Name))
+
+                    Dim name = line.Line.Grams(line.Index - 1).Name
+                    For Each a In follow(line.Line.Grams(line.Index).Name).Where(Function(x) Not follow(name).Contains(x))
+
+                        follow(name).Add(a)
+                        Continue Do
+                    Next
+                Next
+            Next
+
+            Exit Do
+        Loop
+
+        lookahead.Values.Each(Sub(look) look.ToList.Each(Sub(head) If head.Value.IsNull AndAlso follow.ContainsKey(head.Key.Name) Then look(head.Key) = follow(head.Key.Name)))
+
         Return lookahead
     End Function
 
