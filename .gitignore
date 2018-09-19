@@ -210,3 +210,8 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+
+*.lnk
+/tests/*.txt
+/tests/*.csv
+/tests/*.output
