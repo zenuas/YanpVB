@@ -75,7 +75,7 @@ For Each reduce As GrammarLine In Me.Syntax.Grammars
 	End If
 #>
                 Case <#= reduce_to_index(reduce) #>
-                    Debug.WriteLine("<#= reduce #>")
+                    Me.TraceAction("<#= reduce #>")
                     <#= action #>
                     yy_token = Me.DoAction(SymbolTypes.<#= vbterms(reduce.Name) #>, <#= length #>, yy_value)
 
@@ -103,6 +103,12 @@ Next
             Debug.Fail("syntax error")
             Dim t = lex.PeekToken
             Throw New SyntaxErrorException(t.LineNumber, t.LineColumn, "syntax error")
+        End Sub
+
+        <Conditional("TRACE")>
+        Public Overridable Sub TraceAction(s As String)
+
+            Debug.WriteLine(s)
         End Sub
     End Class
 
