@@ -264,7 +264,7 @@ Public Class Generator
 
                             Dim decla = y.Declas(name)
                             Select Case _
-                                If(reduce.Priority > decla.Priority, reduce.Assoc,
+                                If(reduce.Priority > decla.Priority, AssocTypes.Right,
                                 If(reduce.Priority < decla.Priority, decla.Assoc,
                                 reduce.Assoc))
 
