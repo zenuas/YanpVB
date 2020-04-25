@@ -38,5 +38,7 @@ Next
 #>
             return table;
         }
+
+        public static Token CreateEndOfToken() => new Token { Type = Symbols.<#= csterms("$END") #> };
     }
 }

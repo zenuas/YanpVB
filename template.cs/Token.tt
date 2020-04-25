@@ -17,7 +17,8 @@ namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
         public <#= Syntax.Default #>? Value { get; set; }
         public int TableIndex { get; set; }
         public int InputToken => (int)Type;
-        public bool IsAccept => Type == Symbols.<#= csterms("$END") #>;
+        public bool IsAccept => Type == Symbols.<#= csterms("$ACCEPT") #>;
+        public bool EndOfToken => Type == Symbols.<#= csterms("$END") #>;
         public override string ToString() => Type.ToString();
     }
 }

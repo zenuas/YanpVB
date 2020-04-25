@@ -15,7 +15,7 @@ namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
 {
     public partial class Parser
     {
-        public List<IToken<<#= Syntax.Default #>>> TokenStack { get; } = new List<IToken<<#= Syntax.Default #>>>();
+        public List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>> TokenStack { get; } = new List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>();
         public int[,] Tables { get; } = new int[,] {
 <#
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
@@ -37,19 +37,19 @@ Next
 #>
             };
 
-        public <#= Syntax.Default #>? Parse(ILexer<<#= Syntax.Default #>> lex)
+        public <#= Syntax.Default #> Parse(ILexer<<#= Syntax.Default #>> lex)
         {
             var current = 0;
 
             while (true)
             {
-                var token = lex.PeekToken();
+                var token = (<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken();
                 var x = Tables[current, token.InputToken];
 
                 if (x < 0)
                 {
                     token = RunAction(x);
-                    if (token.IsAccept) return token.Value;
+                    if (token.IsAccept) return token.Value!;
                     current = TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex;
                     x = Tables[current, token.InputToken];
 
@@ -71,9 +71,9 @@ Next
             }
         }
 
-        public IToken<<#= Syntax.Default #>> RunAction(int yy_no)
+        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> RunAction(int yy_no)
         {
-            IToken<<#= Syntax.Default #>>? yy_token;
+            <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>? yy_token;
             <#= Syntax.Default #>? yy_value = null;
 
             switch (yy_no)
@@ -96,7 +96,7 @@ For Each reduce As GrammarLine In Me.Syntax.Grammars
 				n = n - 1
 				Dim g = reduce.Grams(n)
 				If g.Type <> "" Then Return String.Format("(({1})GetValue({0}))", n - length, g.Type)
-				If Not grams.ContainsKey(g.Name) Then Return String.Format("((IToken<{1}>)GetToken({0}))", n - length, Syntax.Default)
+				If Not grams.ContainsKey(g.Name) Then Return String.Format("(GetToken({0}))", n - length, Syntax.Default)
 				Return String.Format("(GetValue({0}))", n - length)
 			End Function)
 	Else
@@ -119,17 +119,17 @@ Next
             return yy_token;
         }
 
-        public IToken<<#= Syntax.Default #>> GetToken(int from_last_index) => TokenStack[TokenStack.Count + from_last_index];
+        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> GetToken(int from_last_index) => TokenStack[TokenStack.Count + from_last_index];
 
         public <#= Syntax.Default #> GetValue(int from_last_index) => GetToken(from_last_index).Value!;
 
         public <#= Syntax.Default #> DefaultAction(int length) => GetValue(-length);
 
-        public bool IsAccept(IToken<<#= Syntax.Default #>> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
+        public bool IsAccept(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
 
-        public IToken<<#= Syntax.Default #>> DoAction(Symbols type, int length, <#= Syntax.Default #>? value) => DoAction(new Token { Type = type }, length, value);
+        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(Symbols type, int length, <#= Syntax.Default #>? value) => DoAction(new Token { Type = type }, length, value);
 
-        public IToken<<#= Syntax.Default #>> DoAction(IToken<<#= Syntax.Default #>> token, int length, <#= Syntax.Default #>? value)
+        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token, int length, <#= Syntax.Default #>? value)
         {
             token.Value = value;
             TokenStack.RemoveRange(TokenStack.Count - length, length);
