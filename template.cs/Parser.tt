@@ -96,7 +96,7 @@ For Each reduce As GrammarLine In Me.Syntax.Grammars
 				n = n - 1
 				Dim g = reduce.Grams(n)
 				If g.Type <> "" Then Return String.Format("(({1})GetValue({0}))", n - length, g.Type)
-				If Not grams.ContainsKey(g.Name) Then Return String.Format("((IToken<{1}>)GetToken({0})", n - length, Syntax.Default)
+				If Not grams.ContainsKey(g.Name) Then Return String.Format("((IToken<{1}>)GetToken({0}))", n - length, Syntax.Default)
 				Return String.Format("(GetValue({0}))", n - length)
 			End Function)
 	Else
@@ -121,9 +121,9 @@ Next
 
         public IToken<<#= Syntax.Default #>> GetToken(int from_last_index) => TokenStack[TokenStack.Count + from_last_index];
 
-        public <#= Syntax.Default #>? GetValue(int from_last_index) => GetToken(from_last_index).Value;
+        public <#= Syntax.Default #> GetValue(int from_last_index) => GetToken(from_last_index).Value!;
 
-        public <#= Syntax.Default #> DefaultAction(int length) => GetValue(-length)!;
+        public <#= Syntax.Default #> DefaultAction(int length) => GetValue(-length);
 
         public bool IsAccept(IToken<<#= Syntax.Default #>> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
 
