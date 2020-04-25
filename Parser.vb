@@ -66,10 +66,7 @@ Public Class Parser
                         Case "%define"
 
                             If lex.EndOfToken Then Throw New ParseException(lex.LineNo, lex.LineColumn, "%define with name")
-                            Dim name = lex.ReadToken.Name
-
-                            If lex.EndOfToken Then Throw New ParseException(lex.LineNo, lex.LineColumn, "%define with value")
-                            y.Defines.Add(name, lex.ReadToken.Name)
+                            y.Defines.Add(lex.ReadToken.Name, lex.ReadLine.TrimStart)
 
                         Case "%start"
 
