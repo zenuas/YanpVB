@@ -1,0 +1,35 @@
+<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ import namespace="Yanp" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#= Syntax.HeaderCode #>
+using System.Collections.Generic;
+
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+{
+    public partial class Lexer : ILexer<<#= Syntax.Default #>>
+    {
+        public Dictionary<char, Symbols> ReservedChar { get; } = new Dictionary<char, Symbols>();
+        public Dictionary<string, Symbols> ReservedWord { get; } = new Dictionary<string, Symbols>();
+
+        public void InitReserved()
+        {
+<#
+For Each c As String In sorted_terms
+	
+	If c.Chars(0) <> "'"c Then Continue For
+#>            ReservedChar[<#= c #>] = Symbols.<#= csterms(c) #>;
+<#
+Next
+For Each c As String In sorted_terms
+	
+	If c.Chars(0) = "'"c OrElse c.Chars(0) = "$"c OrElse Not Syntax.Grammars.Where(Function(g) g.Name = c).IsNull Then Continue For
+#>            ReservedWord["<#= c #>"] = Symbols.<#= csterms(c) #>;
+<#
+Next
+#>
+        }
+    }
+}
