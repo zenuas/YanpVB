@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
 {
-    public class Parser
+    public partial class Parser
     {
         public List<IToken<<#= Syntax.Default #>>> TokenStack { get; } = new List<IToken<<#= Syntax.Default #>>>();
         public int[,] Tables { get; } = new int[,] {
@@ -74,7 +74,7 @@ Next
         public IToken<<#= Syntax.Default #>> RunAction(int yy_no)
         {
             IToken<<#= Syntax.Default #>>? yy_token;
-            <#= Syntax.Default #>? yy_value;
+            <#= Syntax.Default #>? yy_value = null;
 
             switch (yy_no)
             {
@@ -127,9 +127,9 @@ Next
 
         public bool IsAccept(IToken<<#= Syntax.Default #>> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
 
-        public IToken<<#= Syntax.Default #>> DoAction(Symbols type, int length, <#= Syntax.Default #> value) => DoAction(new Token { Type = type }, length, value);
+        public IToken<<#= Syntax.Default #>> DoAction(Symbols type, int length, <#= Syntax.Default #>? value) => DoAction(new Token { Type = type }, length, value);
 
-        public IToken<<#= Syntax.Default #>> DoAction(IToken<<#= Syntax.Default #>> token, int length, <#= Syntax.Default #> value)
+        public IToken<<#= Syntax.Default #>> DoAction(IToken<<#= Syntax.Default #>> token, int length, <#= Syntax.Default #>? value)
         {
             token.Value = value;
             TokenStack.RemoveRange(TokenStack.Count - length, length);
