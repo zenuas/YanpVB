@@ -1,0 +1,13 @@
+﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+{
+    public interface ILexer<T> where T : class
+    {
+        public IToken<T> PeekToken();
+
+        public IToken<T> ReadToken();
+    }
+}

@@ -1,0 +1,23 @@
+﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+<#= Syntax.HeaderCode #>
+
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+{
+    public class Token : IToken<<#= Syntax.Default #>>
+    {
+        public string Name { get; set; } = "";
+        public Symbols Type { get; set; }
+        public int LineNumber { get; set; }
+        public int LineColumn { get; set; }
+        public int Indent { get; set; }
+        public <#= Syntax.Default #>? Value { get; set; }
+        public int TableIndex { get; set; }
+        public int InputToken => (int)Type;
+        public bool IsAccept => Type == Symbols.<#= csterms("$END") #>;
+        public bool EndOfToken => Type == Symbols.<#= csterms("$END") #>;
+    }
+}

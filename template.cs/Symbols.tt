@@ -1,0 +1,21 @@
+﻿<#@ template language="VB" debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="UTF-8" #>
+<#@ assembly name="yanp.exe" #>
+<#@ include file="Utility.tt.vb" #>
+<#@ parameter type="Yanp.Syntax" name="Syntax" #>
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+{
+    public enum Symbols
+    {
+<#
+For Each x As String In sorted_terms
+#>
+
+        /// <summary><#= x.Replace("<", "&lt;") #></summary>
+        <#= csterms(x) #>,
+<#
+Next
+#>
+
+    }
+}
