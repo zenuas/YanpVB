@@ -202,50 +202,29 @@ Public Class Lexer
                     Me.ReadChar()
 
                     If Me.EndOfStream Then Throw New ParseException(Me.LineNo, Me.LineColumn, "parse type error")
-                    c = Me.ReadChar
-                    buf.Append(c)
 
-                    If c = "_"c Then
-
-                        Do
-                            If Me.EndOfStream Then Throw New ParseException(Me.LineNo, Me.LineColumn, "parse type error EOF")
-
-                            c = Me.ReadChar
-                            If c = "_"c Then
-
-                                buf.Append(c)
-
-                            ElseIf Me.IsAlpha(c) Then
-
-                                buf.Append(c)
-                                Exit Do
-
-                            Else
-
-                                Throw New ParseException(Me.LineNo, Me.LineColumn, $"parse type error ({c})")
-                            End If
-                        Loop
-
-                    ElseIf Not Me.IsAlpha(c) Then
-
-                        Throw New ParseException(Me.LineNo, Me.LineColumn, $"parse type error ({c})")
-                    End If
-
+                    Dim indent = 1
                     Do While Not Me.EndOfStream()
 
                         c = Me.NextChar()
-                        If Me.IsWord(c) Then
+                        If c = ">"c Then
+
+                            Me.ReadChar()
+                            indent -= 1
+                            If indent <= 0 Then
+
+                                Exit Do
+                            Else
+
+                                buf.Append(c)
+                            End If
+
+                        Else
 
                             buf.Append(c)
                             Me.ReadChar()
+                            If c = "<"c Then indent += 1
 
-                        ElseIf c = ">"c Then
-
-                            Me.ReadChar()
-                            Exit Do
-
-                        Else
-                            Throw New ParseException(Me.LineNo, Me.LineColumn, $"parse type error ({c})")
                         End If
                     Loop
 
