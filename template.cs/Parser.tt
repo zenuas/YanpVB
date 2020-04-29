@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
 {
-    public partial class Parser
+    public partial class Parser : IParser<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>
     {
         public List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>> TokenStack { get; } = new List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>();
         public int[,] Tables { get; } = new int[,] {
@@ -139,8 +139,7 @@ Next
         public void OnError(ILexer<<#= Syntax.Default #>> lex)
         {
             Debug.Fail("syntax error");
-            var t = lex.PeekToken();
-            throw new Exception($"syntax error({t.LineNumber}, {t.LineColumn})");
+            SyntaxError((<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken());
         }
 
         [Conditional("TRACE")]
