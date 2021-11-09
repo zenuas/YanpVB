@@ -7,38 +7,37 @@
 <#= Syntax.HeaderCode #>
 using System.Collections.Generic;
 
-namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>;
+
+public partial class Lexer : ILexer<<#= Syntax.Default #>>
 {
-    public partial class Lexer : ILexer<<#= Syntax.Default #>>
+    public static Dictionary<char, Symbols> CreateReservedCharTable()
     {
-        public static Dictionary<char, Symbols> CreateReservedCharTable()
-        {
-            var table = new Dictionary<char, Symbols>();
+        var table = new Dictionary<char, Symbols>();
 <#
 For Each c As String In sorted_terms
 	
 	If c.Chars(0) <> "'"c Then Continue For
-#>            table[<#= c #>] = Symbols.<#= csterms(c) #>;
+#>        table[<#= c #>] = Symbols.<#= csterms(c) #>;
 <#
 Next
 #>
-            return table;
-        }
+        return table;
+    }
 
-        public static Dictionary<string, Symbols> CreateReservedStringTable()
-        {
-            var table = new Dictionary<string, Symbols>();
+    public static Dictionary<string, Symbols> CreateReservedStringTable()
+    {
+        var table = new Dictionary<string, Symbols>();
 <#
 For Each c As String In sorted_terms
 	
 	If c.Chars(0) = "'"c OrElse c.Chars(0) = "$"c OrElse Not Syntax.Grammars.Where(Function(g) g.Name = c).IsNull Then Continue For
-#>            table["<#= c #>"] = Symbols.<#= csterms(c) #>;
+#>        table["<#= c #>"] = Symbols.<#= csterms(c) #>;
 <#
 Next
 #>
-            return table;
-        }
-
-        public static Token CreateEndOfToken() => new Token { Type = Symbols.<#= csterms("$END") #> };
+        return table;
     }
+
+    public static Token CreateEndOfToken() => new Token { Type = Symbols.<#= csterms("$END") #> };
 }

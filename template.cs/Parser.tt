@@ -11,12 +11,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>
+namespace <#= Syntax.GetDefine("YYNAMESPACE", "Parser") #>;
+
+public partial class Parser : IParser<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>
 {
-    public partial class Parser : IParser<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>
-    {
-        public List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>> TokenStack { get; } = new List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>();
-        public int[,] Tables { get; } = new int[,] {
+    public List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>> TokenStack { get; } = new List<<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>>();
+    public int[,] Tables { get; } = new int[,] {
 <#
 Dim node_to_index = Me.Nodes.ToHash_ValueDerivation(Function(x, i) i)
 Dim reduce_to_index = Me.Syntax.Grammars.ToHash_ValueDerivation(Function(x, i) -i - 1)
@@ -31,53 +31,53 @@ For Each p As Dictionary(Of String, ParserAction) In Me.ParserTable
 				reduce_to_index(CType(action.Value, ReduceAction).Reduce)
 			)
 	Next
-#>                {<#= String.Join(", ", line) #>},
+#>            {<#= String.Join(", ", line) #>},
 <#
 Next
 #>
-            };
+        };
 
-        public <#= Syntax.Default #> Parse(ILexer<<#= Syntax.Default #>> lex)
+    public <#= Syntax.Default #> Parse(ILexer<<#= Syntax.Default #>> lex)
+    {
+        var current = 0;
+
+        while (true)
         {
-            var current = 0;
+            var token = (<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken();
+            var x = Tables[current, token.InputToken];
 
-            while (true)
+            if (x < 0)
             {
-                var token = (<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken();
-                var x = Tables[current, token.InputToken];
+                token = RunAction(x);
+                if (token.IsAccept) return token.Value!;
+                current = TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex;
+                x = Tables[current, token.InputToken];
 
-                if (x < 0)
-                {
-                    token = RunAction(x);
-                    if (token.IsAccept) return token.Value!;
-                    current = TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex;
-                    x = Tables[current, token.InputToken];
-
-                    token.TableIndex = x;
-                    TokenStack.Add(token);
-                    current = x;
-                }
-                else if (x == 0)
-                {
-                    OnError(lex);
-                }
-                else
-                {
-                    _ = lex.ReadToken();
-                    token.TableIndex = x;
-                    TokenStack.Add(token);
-                    current = x;
-                }
+                token.TableIndex = x;
+                TokenStack.Add(token);
+                current = x;
+            }
+            else if (x == 0)
+            {
+                OnError(lex);
+            }
+            else
+            {
+                _ = lex.ReadToken();
+                token.TableIndex = x;
+                TokenStack.Add(token);
+                current = x;
             }
         }
+    }
 
-        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> RunAction(int yy_no)
+    public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> RunAction(int yy_no)
+    {
+        <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>? yy_token;
+        <#= Syntax.Default #>? yy_value = null;
+
+        switch (yy_no)
         {
-            <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>? yy_token;
-            <#= Syntax.Default #>? yy_value = null;
-
-            switch (yy_no)
-            {
 <#
 Dim grams = Me.Syntax.Grammars.Map(Function(x) x.Name).SortToList.Unique.ToHash_ValueDerivation(Function(x, i) i)
 For Each reduce As GrammarLine In Me.Syntax.Grammars
@@ -103,46 +103,45 @@ For Each reduce As GrammarLine In Me.Syntax.Grammars
 		action = String.Format("yy_value = DefaultAction({0});", length)
 	End If
 #>
-                case <#= reduce_to_index(reduce) #>:
-                    TraceAction("<#= reduce #>");
-                    <#= action #>
-                    yy_token = DoAction(Symbols.<#= csterms(reduce.Name) #>, <#= length #>, yy_value);
-                    break;
+            case <#= reduce_to_index(reduce) #>:
+                TraceAction("<#= reduce #>");
+                <#= action #>
+                yy_token = DoAction(Symbols.<#= csterms(reduce.Name) #>, <#= length #>, yy_value);
+                break;
 
 <#
 Next
 #>
-                default:
-                    throw new InvalidProgramException();
-            }
-
-            return yy_token;
+            default:
+                throw new InvalidProgramException();
         }
 
-        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> GetToken(int from_last_index) => TokenStack[TokenStack.Count + from_last_index];
-
-        public <#= Syntax.Default #> GetValue(int from_last_index) => GetToken(from_last_index).Value!;
-
-        public <#= Syntax.Default #> DefaultAction(int length) => GetValue(-length);
-
-        public bool IsAccept(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
-
-        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(Symbols type, int length, <#= Syntax.Default #>? value) => DoAction(new Token { Type = type }, length, value);
-
-        public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token, int length, <#= Syntax.Default #>? value)
-        {
-            token.Value = value;
-            TokenStack.RemoveRange(TokenStack.Count - length, length);
-            return token;
-        }
-
-        public void OnError(ILexer<<#= Syntax.Default #>> lex)
-        {
-            Debug.Fail("syntax error");
-            SyntaxError((<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken());
-        }
-
-        [Conditional("TRACE")]
-        public void TraceAction(string s) => Debug.WriteLine(s);
+        return yy_token;
     }
+
+    public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> GetToken(int from_last_index) => TokenStack[TokenStack.Count + from_last_index];
+
+    public <#= Syntax.Default #> GetValue(int from_last_index) => GetToken(from_last_index).Value!;
+
+    public <#= Syntax.Default #> DefaultAction(int length) => GetValue(-length);
+
+    public bool IsAccept(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token) => Tables[TokenStack.Count == 0 ? 0 : TokenStack[^1].TableIndex, token.InputToken] != 0;
+
+    public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(Symbols type, int length, <#= Syntax.Default #>? value) => DoAction(new Token { Type = type }, length, value);
+
+    public <#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> DoAction(<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #> token, int length, <#= Syntax.Default #>? value)
+    {
+        token.Value = value;
+        TokenStack.RemoveRange(TokenStack.Count - length, length);
+        return token;
+    }
+
+    public void OnError(ILexer<<#= Syntax.Default #>> lex)
+    {
+        Debug.Fail("syntax error");
+        SyntaxError((<#= Syntax.GetDefine("YYTOKEN", "IToken<" + Syntax.Default + ">") #>)lex.PeekToken());
+    }
+
+    [Conditional("TRACE")]
+    public void TraceAction(string s) => Debug.WriteLine(s);
 }
